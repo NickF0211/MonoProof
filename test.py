@@ -271,10 +271,12 @@ def add_performance_sequential_test():
     write_dimacs(test_file, constraints)
 
 if __name__ == "__main__":
-    width = 8
-    layers = 4
-    add_performance_test2(8, 4, is_momnotoinc=True)
-    add_performance_test2(8, 4, is_momnotoinc=False)
+    width = 16
+    layers = 3
+    #test_lower(8)
+    add_performance_test2(width, layers, is_momnotoinc=True)
+    #reset()
+    add_performance_test2(width, layers, is_momnotoinc=False)
 
 
 
