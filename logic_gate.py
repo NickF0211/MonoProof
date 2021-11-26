@@ -26,33 +26,44 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
         var1 = var2
         var2 = temp
 
-    predicate_lit = None
-    if forward and not backward:
-        predicate_lit = AND_cached_res_f.get((var1, var2), None)
-    elif backward and not forward:
-        predicate_lit = AND_cached_res_b.get((var1, var2), None)
-    elif forward and backward:
-        p_f = AND_cached_res_f.get((var1, var2), None)
-        p_b = AND_cached_res_b.get((var1, var2), None)
-        if p_f is not None and p_b is not None:
-            predicate_lit = AND(p_f, p_b, constraints)
+    predicate_lit_f = AND_cached_res_f.get((var1, var2), None)
+    predicate_lit_b = AND_cached_res_b.get((var1, var2), None)
 
-    if predicate_lit is not None:
-        return predicate_lit
+    '''
+    if forward and not backward:
+        if predicate_lit_f is not None:
+            return predicate_lit_f
+    elif backward and not forward:
+        if predicate_lit_b is not None:
+            return predicate_lit_b
+    elif forward and backward:
+        if predicate_lit_f is not None and predicate_lit_b is not None:
+            if predicate_lit_f == predicate_lit_b:
+                return predicate_lit_f  
+    '''
+
+    if predicate_lit_f is not None:
+        assert (predicate_lit_b is None or predicate_lit_b == predicate_lit_f)
+        predicate_lit = predicate_lit_f
+    elif predicate_lit_b is not None:
+        assert (predicate_lit_f is None or predicate_lit_b == predicate_lit_f)
+        predicate_lit = predicate_lit_b
     else:
         predicate_lit = new_lit()
-        if backward:
-            constraints.append([-predicate_lit, var1])
-            constraints.append([-predicate_lit, var2])
-        if forward:
-            constraints.append([-var1, -var2, predicate_lit])
 
-        if forward:
-            AND_cached_res_f[(var1, var2)] = predicate_lit
-        if backward:
-            AND_cached_res_f[(var1, var2)] = predicate_lit
+    assert (predicate_lit_b is None or predicate_lit_f is None or predicate_lit_b == predicate_lit_f)
+    if backward and predicate_lit_b is None:
+        constraints.append([-predicate_lit, var1])
+        constraints.append([-predicate_lit, var2])
+    if forward and predicate_lit_f is None:
+        constraints.append([-var1, -var2, predicate_lit])
 
-        return predicate_lit
+    if forward:
+        AND_cached_res_f[(var1, var2)] = predicate_lit
+    if backward:
+        AND_cached_res_b[(var1, var2)] = predicate_lit
+
+    return predicate_lit
 
 def g_AND(var_body, constraints=global_inv, forward=True, backward=True):
     init = TRUE()

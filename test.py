@@ -214,7 +214,7 @@ def add_performance_test2(bits, layers, is_momnotoinc = True):
             first = bottom_layers[i]
             second = bottom_layers[i + 1]
             if is_momnotoinc:
-                new_bv1 = add_lower(first, second, constraints)
+                new_bv1 = add_mono(first, second, constraints)
             else:
                 new_bv1 = add(first, second, constraints)
             cur_layers.append(new_bv1)
@@ -222,7 +222,7 @@ def add_performance_test2(bits, layers, is_momnotoinc = True):
             first_compare = compare_layers[i]
             second_compare = compare_layers[i + 1]
             if is_momnotoinc:
-                compare_bv1 = add_upper(first_compare, second_compare, constraints)
+                compare_bv1 = add_mono(first_compare, second_compare, constraints)
             else:
                 compare_bv1 = add(first_compare, second_compare, constraints)
             cur_compare_layers.append(compare_bv1)
@@ -270,12 +270,14 @@ def add_performance_sequential_test():
     test_file = "test.dimacs"
     write_dimacs(test_file, constraints)
 
+
+
 if __name__ == "__main__":
-    width = 16
-    layers = 3
+    width = 8
+    layers = 2
     #test_lower(8)
     add_performance_test2(width, layers, is_momnotoinc=True)
-    #reset()
+    reset()
     add_performance_test2(width, layers, is_momnotoinc=False)
 
 

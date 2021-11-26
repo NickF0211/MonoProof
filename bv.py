@@ -128,7 +128,7 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
 
 def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     bv3 = add_lower(bv1, bv2, constraint, bv3)
-    bv3 = add_upper(bv1, bv2, constraint, bv3)
+    add_upper(bv1, bv2, constraint, bv3)
     return bv3
 
 
@@ -198,7 +198,7 @@ def _add_lower(bv1, bv2, bv3, constraint = global_inv):
         contain_bit = g_OR([bit1, bit2, carries[i+1]], constraint, backward=False)
         rules.append(IMPLIES(g_AND([bit1, bit2, carries[i+1]], constraint, backward=False) , bit3, constraint, forward=False))
         acceptance_condition = _get_lower_bound_condition(bv1, bv2, bv3, i, constraint, storage=cache_storage)
-        rules.append(IMPLIES(contain_bit, OR(bit3, acceptance_condition, constraint, forward=False), constraint, forward=False))
+        rules.append(IMPLIES(contain_bit, OR(bit3, acceptance_condition, constraint), constraint, forward=False))
 
     rules.append(IMPLIES(carries[0], bv3.get_var(0), constraint, forward=False))
 
@@ -250,7 +250,7 @@ def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=Fals
         bit3 = bv3.get_var(i+1)
         neither_bit = t_AND(-bit1, -bit2, constraint)
         accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i+1, constraint, storage=cache_storage)
-        rules.append(IMPLIES(neither_bit, OR(-bit3, accepted_condition, constraint, forward=False), constraint, forward=False))
+        rules.append(IMPLIES(neither_bit, OR(-bit3, accepted_condition, constraint), constraint, forward=False))
 
 
     accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, 0, constraint, storage=cache_storage)
