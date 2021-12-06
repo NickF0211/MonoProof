@@ -51,7 +51,7 @@ if __name__ == "__main__":
     unsat_hint = [e02, e13]
     mfunsat = mf05.encode(set(unsat_hint), False, constraint)
     constraint.append([mfunsat])
-    constraint.append([LT_const(e02.cap, 5, constraint)])
+    constraint.append([LT_const(e02.cap, 6, constraint)])
     constraint.append([LT_const(e13.cap, 15, constraint)])
     #constraint.append([GT_const(add(e13.cap, e02.cap, constraint), 4, constraint)])
 

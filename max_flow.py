@@ -52,7 +52,7 @@ class Maxflow():
         for edge in cut:
             sum_cap = add_mono(sum_cap, edge.cap, constraint)
 
-        return  LT(sum_cap, self.target_flow, constraint)
+        return  -GT_const_strict(sum_cap, self.target_flow, constraint, equal=True)
 
     def _encode_in_flow(self, node, flows, constraint):
         in_flow = 0
