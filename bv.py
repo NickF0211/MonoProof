@@ -37,10 +37,11 @@ def new_bv(width, set_var=True):
         body = [0 for _ in range(width)]
     return BV(width, body)
 
-def N_to_bit_array(const, width):
+def N_to_bit_array(const, width = -1):
     inter = bin(const)[2:]
-    assert (len(inter) <= width)
-    inter = inter.zfill(width)
+    if width != -1:
+        assert (len(inter) <= width)
+        inter = inter.zfill(width)
     return [0  if b == '0' else 1 for b in inter]
 
 def ntob(num):
@@ -128,12 +129,9 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
 
 def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     if isinstance(bv1, int):
-        if isinstance(bv2, int):
-            return bv1 + bv2
-        else:
-            bv1 = N_to_bit_array(bv1, bv2.width)
-    elif isinstance(bv2, int):
-            bv2 = N_to_bit_array(bv2, bv1.width)
+        bv1 = N_to_bit_array(bv1)
+    if isinstance(bv2, int):
+        bv2 = N_to_bit_array(bv2)
 
     bv3 = add_lower(bv1, bv2, constraint, bv3)
     add_upper(bv1, bv2, constraint, bv3)

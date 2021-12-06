@@ -27,14 +27,14 @@ class Node():
 
 
 class Edge():
-    def __init__(self, graph, src, target, weight=new_bv(8), id=-1):
+    def __init__(self, graph, src, target, cap=new_bv(8), id=-1):
         self.graph = graph
         if self.id == -1:
             id = len(graph.edgs)
         self.id = id
         self.src = src
         self.target = target
-        self.weight = weight
+        self.cap = cap
         self.lit = new_lit()
 
 def get_node(graph, node):

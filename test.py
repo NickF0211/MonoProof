@@ -239,9 +239,9 @@ def add_performance_test2(bits, layers, is_momnotoinc = True):
 
     print(len(global_inv) + len(constraints))
     if is_momnotoinc:
-        test_file = "test_mono.dimacs"
+        test_file = "test_mono_simplfied.dimacs"
     else:
-        test_file = "test_mixed.dimacs"
+        test_file = "test_mixed_simplified.dimacs"
     write_dimacs(test_file, constraints)
 
 def add_performance_sequential_test():
@@ -273,12 +273,12 @@ def add_performance_sequential_test():
 
 
 if __name__ == "__main__":
-    width = 8
-    layers = 2
-    #test_lower(8)
-    add_performance_test2(width, layers, is_momnotoinc=True)
-    reset()
-    add_performance_test2(width, layers, is_momnotoinc=False)
+    width = 16
+    layers = 3
+    test_lower(8)
+    #add_performance_test2(width, layers, is_momnotoinc=True)
+    #reset()
+    #add_performance_test2(width, layers, is_momnotoinc=False)
 
 
 
