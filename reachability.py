@@ -26,21 +26,24 @@ class Reachability():
         max_size = len(path)
         step = 0
         # then the hint is the path from src to the sink
-        assert self.sink in self.reachable
         current_node = self.src
-        while current_node != path and step < max_size:
+        while current_node != self.sink and step < max_size:
             old_current = current_node
             current_reach = self.reachable[current_node]
             for next, edge in current_node.outgoing.items():
-                if next in path:
+                if edge in path:
                     next_reachable = self.reachable.get(next, 0)
-                    if next_reachable == -1:
+                    if next_reachable == 0:
                         next_reachable = new_lit()
                         self.reachable[next] = next_reachable
                     constraint.append([IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
                     current_node = next
                     break
             assert current_node != old_current
+
+        if current_node != self.sink:
+            self.reachable[self.sink] = new_lit()
+
         constraint.append([IMPLIES(self.reachable[self.sink], predicate, constraint)])
         return predicate
 
@@ -51,7 +54,7 @@ class Reachability():
         # in case unreachable, the hint is a cut that separates the source from the sink
         t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
         # the mono_encoding
-        constraint.append(IMPLIES(predicate, t_final,constraint))
+        constraint.append([IMPLIES(predicate, t_final, constraint)])
         return predicate
 
     def compute_unreachable_graph(self, cut):
@@ -63,7 +66,7 @@ class Reachability():
             for target, edge in head.incoming.items():
                 if edge not in cut and target not in explored:
                     open.append(target)
-                explored.add(open)
+                explored.add(target)
         return explored
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):

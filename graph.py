@@ -23,19 +23,24 @@ class Node():
         self.outgoing = {}
         graph.nodes.append(self)
 
-
+    def __str__(self):
+        return "n:{}".format(self.id)
 
 
 class Edge():
     def __init__(self, graph, src, target, cap=new_bv(8), id=-1):
         self.graph = graph
-        if self.id == -1:
-            id = len(graph.edgs)
+        if id == -1:
+            id = len(graph.edges)
         self.id = id
         self.src = src
         self.target = target
         self.cap = cap
         self.lit = new_lit()
+        graph.edges.append(self)
+
+    def __str__(self):
+        return "e:{}_{}".format(self.src.id, self.target.id)
 
 def get_node(graph, node):
     if isinstance(node, Node):
@@ -49,7 +54,9 @@ def get_node(graph, node):
 
 
 
-def add_edge(graph, src, target, weight = new_bv(8) ):
+def add_edge(graph, src, target, weight =None ):
+    if weight is None:
+        weight = new_bv(8)
     src = get_node(graph, src)
     target = get_node(graph, target)
     edge = src.outgoing.get(target, None)
@@ -57,7 +64,7 @@ def add_edge(graph, src, target, weight = new_bv(8) ):
         assert target.incoming.get(src) == edge
         return edge
     else:
-        edge = Edge(src, target, weight)
+        edge = Edge(graph, src, target, weight)
         src.outgoing[target] = edge
         target.incoming[src] = edge
         return edge

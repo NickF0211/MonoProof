@@ -23,8 +23,9 @@ class Maxflow():
             #cond2:  flow doesn't exceed the edge capacity
             cond2 = self._encode_capacity_check(hint, constraint)
             #cond3 the flow in the target is larger then the said target
-            cond3 = GE(self._encode_in_flow(self.sink, hint, constraint), constraint)
-            return g_AND([cond3] + cond2 + cond1)
+            cond3 = GE(self._encode_in_flow(self.sink, hint, constraint), self.target_flow, constraint)
+            constraint.append([g_AND([cond1, cond3, cond2], predicate, constraint)])
+            return predicate
         else:
             #in case max-flow constraint is not satisfied, then the hint is the min-cut
             # the verification encoding checks:
@@ -40,8 +41,8 @@ class Maxflow():
             reachability = rch.encode(hint, False, constraint, enabling_cond=_cut_assignment)
             #cond 2: the sum of cut's cap must be less than the target flow
             cond2 = self.check_cut_caps(hint, constraint)
-
-            return AND(-reachability, cond2, constraint)
+            constraint.append([IMPLIES(g_AND([cond2], constraint), -predicate, constraint)])
+            return predicate
 
 
 
@@ -51,19 +52,23 @@ class Maxflow():
         for edge in cut:
             sum_cap = add_mono(sum_cap, edge.cap, constraint)
 
-        return  LT(sum_cap, self.target_flow)
+        return  LT(sum_cap, self.target_flow, constraint)
 
     def _encode_in_flow(self, node, flows, constraint):
         in_flow = 0
         for _, in_edge in node.incoming.items():
-            in_flow = add_mono(in_flow, flows.get(in_edge, 0), constraint)
+            flow = flows.get(in_edge, 0)
+            if flow > 0:
+                in_flow = add(in_flow, flow, constraint)
 
         return in_flow
 
     def _encode_out_flow(self, node, flows, constraint):
         out_flow = 0
         for _, out_edge in node.outgoing.items():
-            out_flow = add_mono(out_flow, flows.get(out_edge, 0), constraint)
+            flow = flows.get(out_edge, 0)
+            if flow > 0:
+                out_flow = add(out_flow, flow, constraint)
 
         return out_flow
 
@@ -72,11 +77,11 @@ class Maxflow():
         for edge, flow_amount in flows.items():
             if flow_amount > 0:
                 # the cap must be at least the flow amount
-                conditions.append(GE(edge.cap, flow_amount))
+                conditions.append(GE(edge.cap, flow_amount, constraint))
                 # the edge must be enabled
                 conditions.append(edge.lit)
 
-        return g_AND(conditions)
+        return g_AND(conditions, constraint)
 
     def _encode_conservation(self, flows, constraint):
         considered_node = set()
@@ -86,12 +91,12 @@ class Maxflow():
             in_node = edge.src
             if in_node not in considered_node and in_node != self.src:
                 #now check each the conservation of the flows
-                conservation.append([self._encode_node_conservation(in_node, flows, constraint)])
+                conservation.append(self._encode_node_conservation(in_node, flows, constraint))
                 considered_node.add(in_node)
 
             out_node = edge.target
             if out_node not in considered_node and out_node != self.sink:
-                conservation.append([self._encode_node_conservation(out_node, flows, constraint)])
+                conservation.append(self._encode_node_conservation(out_node, flows, constraint))
                 considered_node.add(out_node)
 
         return g_AND(conservation)

@@ -88,10 +88,16 @@ def GT_const(bv1, const, constraints=global_inv, equal = False):
         return g_OR(gts, constraints)
 
 def add(bv1, bv2, constraints=global_inv):
+    if isinstance(bv1, int):
+        bv1 = const_to_bv(bv1)
+    if isinstance(bv2, int):
+        bv2 = const_to_bv(bv2)
+
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
     elif bv1.width > bv2.width:
         bv2.self_extend(bv1.width - bv2.width)
+
     assert bv1.width == bv2.width
     bv3 = new_bv(bv1.width+1, set_var=False)
     c_i = FALSE()
@@ -126,12 +132,16 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
     constriant.append([_add_upper(bv1,bv2,new_bv3, constriant)])
     return bv3
 
+def const_to_bv(const):
+    body = N_to_bit_array(const)
+    return BV( len(body), [ntob(b) for b in body])
+
 
 def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     if isinstance(bv1, int):
-        bv1 = N_to_bit_array(bv1)
+        bv1 = const_to_bv(bv1)
     if isinstance(bv2, int):
-        bv2 = N_to_bit_array(bv2)
+        bv2 = const_to_bv(bv2)
 
     bv3 = add_lower(bv1, bv2, constraint, bv3)
     add_upper(bv1, bv2, constraint, bv3)
@@ -296,6 +306,8 @@ def nomrailize(bv1, bv2):
 def GT(bv1, bv2, constraints=global_inv, equal = False):
     if isinstance(bv2, int):
         return GT_const(bv1, bv2, constraints, equal=equal)
+    elif isinstance(bv1, int):
+        return -GT_const(bv2, bv1, constraints, equal= not equal)
 
     bv1, bv2 = nomrailize(bv1, bv2)
     assert bv1.width == bv2.width
@@ -327,6 +339,10 @@ def Equal(bv1, bv2, constraints=global_inv):
     if isinstance(bv2, int):
         return Equal_const(bv1, bv2, constraints)
     else:
+        if bv1.width < bv2.width:
+            bv1.self_extend(bv2.width - bv1.width)
+        elif bv1.width > bv2.width:
+            bv2.self_extend(bv1.width - bv2.width)
         assert (bv1.width == bv2.width)
         width = bv1.width
         return g_AND([IFF(bv1.get_var(i), bv2.get_var(i), constraints)  for i in range(width)], constraints)
