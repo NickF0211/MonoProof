@@ -127,6 +127,14 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
 
 
 def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
+    if isinstance(bv1, int):
+        if isinstance(bv2, int):
+            return bv1 + bv2
+        else:
+            bv1 = N_to_bit_array(bv1, bv2.width)
+    elif isinstance(bv2, int):
+            bv2 = N_to_bit_array(bv2, bv1.width)
+
     bv3 = add_lower(bv1, bv2, constraint, bv3)
     add_upper(bv1, bv2, constraint, bv3)
     return bv3
