@@ -1,7 +1,7 @@
 from bv import *
 
 class Graph():
-    Graphs = []
+    Graphs = {}
 
     def __init__(self, id=-1):
         if id == -1:
@@ -9,7 +9,15 @@ class Graph():
         self.id = id
         self.nodes =[]
         self.edges=[]
-        Graph.Graphs.append(self)
+        Graph.Graphs[self.id] = self
+
+def add_graph(id):
+    graph = Graph.Graphs.get(id, None)
+    if graph is None:
+        graph = Graph(int(id))
+    return graph
+
+
 
 
 class Node():
@@ -28,7 +36,7 @@ class Node():
 
 
 class Edge():
-    def __init__(self, graph, src, target, cap=new_bv(8), id=-1):
+    def __init__(self, graph, src, target, cap=new_bv(8), lit= None, id=-1):
         self.graph = graph
         if id == -1:
             id = len(graph.edges)
@@ -36,7 +44,13 @@ class Edge():
         self.src = src
         self.target = target
         self.cap = cap
-        self.lit = new_lit()
+
+        if lit is None:
+            self.lit = new_lit()
+        else:
+            assert isinstance(lit, type(0))
+            self.lit = lit
+
         graph.edges.append(self)
 
     def __str__(self):
@@ -46,7 +60,8 @@ def get_node(graph, node):
     if isinstance(node, Node):
         return node
     elif isinstance(node, int):
-        assert node < len(graph.nodes)
+        while node >= len(graph.nodes):
+            Node(graph)
         return graph.nodes[node]
     else:
         #unsupported node type
@@ -54,7 +69,11 @@ def get_node(graph, node):
 
 
 
-def add_edge(graph, src, target, weight =None ):
+def add_edge(graph, src, target, lit = None, weight =None):
+    if isinstance(graph, int):
+        graph = Graph.Graphs.get(graph, None)
+        assert graph is not None
+    assert isinstance(graph, Graph)
     if weight is None:
         weight = new_bv(8)
     src = get_node(graph, src)
@@ -64,9 +83,40 @@ def add_edge(graph, src, target, weight =None ):
         assert target.incoming.get(src) == edge
         return edge
     else:
-        edge = Edge(graph, src, target, weight)
+        edge = Edge(graph, src, target, weight, lit=lit)
         src.outgoing[target] = edge
         target.incoming[src] = edge
         return edge
+
+
+def parse_graph(attributes):
+    #arg1, nodes, #arg2 edges, #arg3 id
+    if len(attributes) != 3:
+        return False
+    else:
+        _, _, id = attributes
+        add_graph(int(id))
+        return True
+
+def parse_edge(attributes):
+    #graph id, source, target, lit
+    if len(attributes) != 4:
+        return False
+    else:
+        gid, source, target, lit = attributes
+        add_edge(int(gid), int(source), int(target), lit = int(lit))
+        return True
+
+def parse_weighted_edge(attributes):
+    if len(attributes) != 5:
+        return False
+    else:
+        gid, source, target, lit, width = attributes
+        bv = new_unassigned_bv(int(width))
+        add_edge(int(gid), int(source), int(target), lit = int(lit), weight=bv)
+        return True
+
+
+
 
 

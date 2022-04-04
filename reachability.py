@@ -4,23 +4,26 @@ def _default_enabling_condition(edge):
     return edge.lit
 
 class Reachability():
+    Reaches = {}
 
-    def __init__(self, graph, src, sink):
+    def __init__(self, graph, src, sink, lit=None):
         self.graph = graph
         self.src = src
         self.sink = sink
         self.reachable = {}
         self.reachable[src] = TRUE()
         self.distance = dict()
-
-
-    def encode(self, hint, reachable, constraint, predicate=0, enabling_cond=_default_enabling_condition):
-        if predicate == 0:
-            predicate = new_lit()
-        if reachable:
-            return self.reachability_constraint(hint, constraint, predicate, enabling_cond)
+        if lit is not None:
+            self.lit = lit
         else:
-            return self.unreachability_constraint(hint, constraint, predicate, enabling_cond)
+            self.lit = new_lit()
+        Reachability.Reaches[lit] = self
+
+    def encode(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition):
+        if reachable:
+            return self.reachability_constraint(hint, constraint, self.lit, enabling_cond)
+        else:
+            return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond)
 
     def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
         max_size = len(path)
@@ -95,3 +98,10 @@ class Reachability():
             cache[(node, depth)] = res
             return res
 
+def parse_reach(attributes):
+    if len(attributes) != 4:
+        return False
+    else:
+        gid, source, target, lit = attributes
+        Reachability(int(gid), int(source), int(target), lit = int(lit))
+        return True

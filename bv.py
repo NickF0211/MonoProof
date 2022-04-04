@@ -3,27 +3,51 @@ from logic_gate import *
 from numpy import zeros
 
 class BV():
-
-    def __init__(self, width, body):
+    Bvs = {}
+    def __init__(self, width, body, id =None):
         assert width == 0 or len(body) == width
+
+        if body is None and width != 0:
+            #this is the case for unassigned BV
+            self.assigned = False
+        else:
+            self.assigned = True
+
         self.width = width
         self.body = body
         self.parent = None
+        if id == None:
+            self.id = len(BV.Bvs)
+        else:
+            self.id = id
+        BV.Bvs[id] = self
+
+    def assign(self):
+        if not self.assigned:
+            self.body = [new_lit() for _ in self.width]
+            self.assigned = True
 
     def get_var(self, index):
+        self.assign()
         assert(index < self.width)
         return self.body[index]
 
     def set_var(self, index, var):
+        self.assign()
         assert (index < self.width)
         self.body[index] = var
 
     def extend(self, padding_num):
+        self.assign()
         return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.body)
 
     def self_extend(self, padding_num, pad=FALSE):
+        self.assign()
         self.width = self.width+padding_num
         self.body = [pad() for _ in range(padding_num)] + self.body
+
+def get_bv(id):
+    return BV.Bvs.get(id)
 
 def sub_bv(bv, start, end):
     return BV(end-start, bv.body[start:end])
@@ -36,6 +60,11 @@ def new_bv(width, set_var=True):
     else:
         body = [0 for _ in range(width)]
     return BV(width, body)
+
+def new_unassigned_bv(width):
+    assert width > 0
+    return BV(width, None)
+
 
 def N_to_bit_array(const, width = -1):
     inter = bin(const)[2:]
@@ -358,3 +387,175 @@ def Equal_const(bv1, const, constraints=global_inv):
         width = bv1.width
         return g_AND([IFF(bv1.get_var(i), ntob(const_bv[i]), constraints)   for i in range(width)], constraints)
 
+class Comparsion():
+    comparsions = {}
+    def __init__(self, bv1, bv2, op, lit=None):
+        self.bv1 = bv1
+        self.bv2 = bv2
+
+        if op == ">=":
+            self.op = GE
+        elif op == ">":
+            self.op = GT
+        elif op == "<=":
+            self.op = LE
+        elif op == "<":
+            self.op = LT
+        else:
+            print("unsupported comparsion")
+            assert (False)
+
+        self.encoded = False
+        if lit is None:
+            self.lit = new_lit()
+        else:
+            self.lit = lit
+        Comparsion.comparsions[(bv1.id, bv2.id, op)] = self
+
+    def encode(self, constraints=global_inv):
+        if self.encoded:
+            return self.lit
+        else:
+            result_p = self.op(self.bv1, self.bv2, constraints)
+            constraints.append([IFF(self.lit, result_p)])
+            self.encoded = True
+            return self.lit
+
+def add_compare(bv1, bv2, op, lit, constraints = global_inv):
+    if isinstance(bv1, int):
+        bv1 = get_bv(bv1)
+    if isinstance(bv2, int):
+        bv2 = get_bv(bv2)
+
+    compare = Comparsion.comparsions.get((bv1.id, bv2.id, op), None)
+    if compare is None:
+        compare = Comparsion(bv1, bv2, op, lit)
+        return compare
+    else:
+        if compare.lit != lit:
+            constraints.append([IFF(compare.lit, lit)])
+        return compare
+
+def add_compare_const(bv1, const, op, lit):
+    if isinstance(bv1, int):
+        bv1 = get_bv(bv1)
+
+    compare = Comparsion_const.comparsion_consts.get((bv1.id, const, op), None)
+    if compare is None:
+        compare = Comparsion_const(bv1, const, op, lit)
+        return compare
+    else:
+        if compare.lit != lit:
+            return EQ(compare.lit, lit)
+        else:
+            return compare
+
+
+class Comparsion_const():
+    comparsion_consts = {}
+    def __init__(self, bv1, const, op, lit=None):
+        self.bv1 = bv1
+        self.const = const
+
+        if op == ">=":
+            self.op = GE_const
+        elif op == ">":
+            self.op = GT_const
+        elif op == "<=":
+            self.op = LE_const
+        elif op == "<":
+            self.op = LT_const
+        else:
+            print("unsupported comparsion")
+            assert (False)
+
+        self.encoded = False
+        if lit is None:
+            self.lit = new_lit()
+        else:
+            self.lit = lit
+        Comparsion_const.comparsion_consts[(bv1.id, const, op)] = self
+
+    def encode(self, constraints=global_inv):
+        if self.encoded:
+            return self.lit
+        else:
+            result_p = self.op(self.bv1, self.const, constraints)
+            constraints.append([IFF(self.lit, result_p)])
+            self.encoded = True
+            return self.lit
+
+class EQ():
+    EQs = {}
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+        EQ.EQs[(a,b)] = self
+        EQ.EQs[(b, a)] = self
+        self.result = None
+
+    def encode(self, constraints = global_inv):
+        if self.result is None:
+            self.result = IFF(self.a, self.b, constraints)
+            constraints.append([self.result])
+        return self.result
+
+class ADD():
+    def __init__(self, result, bv1, bv2):
+        self.result = result
+        self.bv1 = bv1
+        self.bv2 = bv2
+        self.encoded = False
+
+    def encode(self, constraints = global_inv):
+        if not self.encoded:
+            add_mono(self.bv1, self.bv2, constraints, self.result)
+            self.encoded = True
+
+
+def add_Add(result, bv1, bv2):
+    if isinstance(bv1, int):
+        bv1 = get_bv(bv1)
+    if isinstance(bv2, int):
+        bv2 = get_bv(bv2)
+    if isinstance(result, int):
+        result = get_bv(result)
+    return ADD(result, bv1, bv2)
+
+def parse_const_comparsion(attributes):
+    if len(attributes) != 4:
+        return False
+    else:
+        op, lit, bv, const = attributes
+        add_compare_const(int(bv), int(const), op, int(lit))
+        return True
+
+def parse_comparsion(attributes):
+    if len(attributes) != 4:
+        return False
+    else:
+        op, lit, bv1, bv2 = attributes
+        add_compare(int(bv1), int(bv2), op, int(lit))
+        return True
+
+def parse_addition(attributes):
+    if len(attributes) != 3:
+        return False
+    else:
+        result, bv1, bv2 = attributes
+        add_Add(int(result), int(bv1), int(bv2))
+        return True
+
+
+
+def parse_bv(attributes):
+    if len(attributes) < 2:
+        return False
+    else:
+        id = attributes[0]
+        width = attributes[1]
+        if len(attributes) != int(width) + 2:
+            return False
+        else:
+            BV(int(width), [int(i) for i in attributes[2:]], int(id))
+            return True

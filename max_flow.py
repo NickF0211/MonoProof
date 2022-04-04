@@ -3,16 +3,21 @@ from graph import *
 from reachability import Reachability
 
 class Maxflow():
+    maxflows = {}
 
-    def __init__(self, graph, src, sink, target_flow):
+    def __init__(self, graph, src, sink, target_flow, lit = None):
         self.graph = graph
         self.src = src
         self.sink = sink
         self.target_flow = target_flow
+        if lit is None:
+            self.lit = new_lit()
+        else:
+            self.lit = lit
+        Maxflow.maxflows[lit] = self
 
-    def encode(self, hint, satisifed, constraint, predicate=0):
-        if predicate == 0:
-            predicate = new_lit()
+    def encode(self, hint, satisifed, constraint):
+        predicate = self.lit
 
         if satisifed:
             #in case of max-flow is satisfied, the hint is a dict that maps flows in each edge
@@ -106,4 +111,17 @@ class Maxflow():
         out_flow = self._encode_out_flow(node, flows,constraint)
         return Equal(in_flow, out_flow, constraint)
 
-
+def parse_maxflow(attributes):
+    if len(attributes) != 6:
+        return False
+    else:
+        signature, gid, source, target, lit, targetflow = attributes
+        if signature == "maximum_flow_geq":
+            Maxflow(int(gid), int(source), int(target), int(targetflow), lit = int(lit))
+        elif signature == "maximum_flow_gt":
+            Maxflow(int(gid), int(source), int(target), int(targetflow)+1, lit=int(lit))
+        elif signature == "maximum_flow_lt":
+            Maxflow(int(gid), int(source), int(target), int(targetflow), lit=-int(lit))
+        elif signature == "maximum_flow_le":
+            Maxflow(int(gid), int(source), int(target), int(targetflow)+1, lit=-int(lit))
+        return True

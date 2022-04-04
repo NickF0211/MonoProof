@@ -3,6 +3,7 @@ from z3 import Solver, sat, unsat
 from prover import Prover
 from random import randint
 from logic_gate import reset
+from pysat.solvers import Cadical, Lingeling
 
 '''
     bv1 = new_bv(bits)
@@ -29,6 +30,28 @@ from logic_gate import reset
     print(res)
     '''
 
+def test_propgation(attempts=100):
+    print("test prop")
+    for bits in range(1,16):
+        for _ in range(attempts):
+            bv1 = new_bv(bits)
+            val_1 = randint(0, 2 ** bits - 1)
+            val_2 = randint(val_1, 2 ** bits - 1)
+            constraints = [[GE_const(bv1, val_2)], [LT_const(bv1, val_1)]]
+            print(val_1)
+            print(val_2)
+            print(len(global_inv) + len(constraints))
+            test_file = "test.dimacs"
+            write_dimacs(test_file, constraints)
+
+            prover = Prover(get_lits_num(), constraints + global_inv)
+            if not prover.conflict:
+                if prover.propgate():
+                    assert (False)
+
+            reset()
+
+
 def test_upper(bits, attempts= 100):
     print("test upper")
     for _ in range(attempts):
@@ -41,8 +64,8 @@ def test_upper(bits, attempts= 100):
         print(val_1)
         print(val_2)
         print(val_3)
-        bv3 = add_upper(bv1, bv2, constraints)
-        constraints += [[Equal_const(bv1, val_1, constraints)], [Equal_const(bv2, val_2, constraints)],
+        bv3 = add_mono(bv1, bv2, constraints)
+        constraints += [[GE_const(bv1, val_1, constraints)], [GE_const(bv2, val_2, constraints)],
                         [GE_const(bv3, val_3, constraints)]]
 
         print(len(global_inv) + len(constraints))
@@ -50,15 +73,16 @@ def test_upper(bits, attempts= 100):
         write_dimacs(test_file, constraints)
 
         prover = Prover(get_lits_num(), constraints + global_inv)
-        prover.propgate()
+        if not prover.conflict:
+            prover.propgate()
 
-        s = Solver()
-        s.from_file(test_file)
-        res = s.check()
-        if res == unsat:
+        solver = Cadical(bootstrap_with= constraints + global_inv)
+
+        if not solver.solve():
             assert (False)
 
         reset()
+
     for _ in range(attempts):
         bv1 = new_bv(bits)
         bv2 = new_bv(bits)
@@ -69,25 +93,34 @@ def test_upper(bits, attempts= 100):
         print(val_1)
         print(val_2)
         print(val_3)
-        bv3 = add_upper(bv1, bv2, constraints)
-        constraints += [[Equal_const(bv1, val_1, constraints)], [Equal_const(bv2, val_2, constraints)],
+        bv3 = add_mono(bv1, bv2, constraints)
+        left1 = LE_const(bv1, val_1, constraints)
+        left2 = LE_const(bv2, val_2, constraints)
+        right = LE_const(bv3, val_3, constraints)
+        lemma = IMPLIES(AND(left1, left2, constraints),
+                        right, constraints)
+        constraints.append([-lemma])
+        '''
+        constraints += [[-GT_const(bv1, val_1, constraints)], [-GT_const(bv2, val_2, constraints)],
                         [GT_const(bv3, val_3, constraints)]]
+        '''
 
         print(len(global_inv) + len(constraints))
         test_file = "test.dimacs"
         write_dimacs(test_file, constraints)
 
         prover = Prover(get_lits_num(), constraints + global_inv)
-        prover.propgate()
 
-        s = Solver()
-        s.from_file(test_file)
-        res = s.check()
-        if res == sat:
-            m = s.model()
-            print(sorted([(d, m[d]) for d in m], key=lambda x: int(str(x[0])[2:])))
-            print("hi")
+        result =prover.propgate()
+        solver = Lingeling(bootstrap_with= constraints + global_inv, with_proof=True)
+
+        if solver.solve():
             assert (False)
+        else:
+            proof = [clause for clause in solver.get_proof() if not clause.startswith("d")]
+            assert ( result or proof == [])
+            print(proof)
+
 
         reset()
 
@@ -275,7 +308,7 @@ def add_performance_sequential_test():
 if __name__ == "__main__":
     width = 16
     layers = 3
-    test_lower(8)
+    test_upper(8)
     #add_performance_test2(width, layers, is_momnotoinc=True)
     #reset()
     #add_performance_test2(width, layers, is_momnotoinc=False)
