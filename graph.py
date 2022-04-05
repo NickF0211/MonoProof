@@ -36,7 +36,7 @@ class Node():
 
 
 class Edge():
-    def __init__(self, graph, src, target, cap=new_bv(8), lit= None, id=-1):
+    def __init__(self, graph, src, target, cap=None, lit= None, id=-1):
         self.graph = graph
         if id == -1:
             id = len(graph.edges)
@@ -74,8 +74,6 @@ def add_edge(graph, src, target, lit = None, weight =None):
         graph = Graph.Graphs.get(graph, None)
         assert graph is not None
     assert isinstance(graph, Graph)
-    if weight is None:
-        weight = new_bv(8)
     src = get_node(graph, src)
     target = get_node(graph, target)
     edge = src.outgoing.get(target, None)
@@ -91,30 +89,24 @@ def add_edge(graph, src, target, lit = None, weight =None):
 
 def parse_graph(attributes):
     #arg1, nodes, #arg2 edges, #arg3 id
-    if len(attributes) != 3:
-        return False
-    else:
-        _, _, id = attributes
-        add_graph(int(id))
-        return True
+    assert (len(attributes) == 3)
+    _, _, id = attributes
+    add_graph(int(id))
+    return True
 
 def parse_edge(attributes):
     #graph id, source, target, lit
-    if len(attributes) != 4:
-        return False
-    else:
-        gid, source, target, lit = attributes
-        add_edge(int(gid), int(source), int(target), lit = int(lit))
-        return True
+    assert (len(attributes) == 4)
+    gid, source, target, lit = attributes
+    add_edge(int(gid), int(source), int(target), lit = int(lit))
+    return True
 
 def parse_weighted_edge(attributes):
-    if len(attributes) != 5:
-        return False
-    else:
-        gid, source, target, lit, width = attributes
-        bv = new_unassigned_bv(int(width))
-        add_edge(int(gid), int(source), int(target), lit = int(lit), weight=bv)
-        return True
+    assert (len(attributes) == 5)
+    gid, source, target, lit, width = attributes
+    bv = new_unassigned_bv(int(width))
+    add_edge(int(gid), int(source), int(target), lit = int(lit), weight=bv)
+    return True
 
 
 

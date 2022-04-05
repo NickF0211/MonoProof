@@ -1,25 +1,35 @@
 from logic_gate import *
+from graph import *
 
 def _default_enabling_condition(edge):
     return edge.lit
 
 class Reachability():
-    Reaches = {}
+    Collection = {}
 
     def __init__(self, graph, src, sink, lit=None):
+        if isinstance(graph, int):
+            graph = Graph.Graphs[graph]
         self.graph = graph
         self.src = src
         self.sink = sink
         self.reachable = {}
-        self.reachable[src] = TRUE()
         self.distance = dict()
         if lit is not None:
             self.lit = lit
         else:
             self.lit = new_lit()
-        Reachability.Reaches[lit] = self
+        Reachability.Collection[lit] = self
 
-    def encode(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition):
+    def encode(self, constraints, enabling_cond = _default_enabling_condition):
+        self.reachable[self.src] = TRUE()
+        self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
+        self.unreachability_constraint(set(), constraints, self.lit, enabling_cond)
+        return self.lit
+
+
+    def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition):
+        self.reachable[self.src] = TRUE()
         if reachable:
             return self.reachability_constraint(hint, constraint, self.lit, enabling_cond)
         else:
@@ -29,20 +39,27 @@ class Reachability():
         max_size = len(path)
         step = 0
         # then the hint is the path from src to the sink
-        current_node = self.src
-        while current_node != self.sink and step < max_size:
-            old_current = current_node
+        #current_node = self.src
+        explored = set()
+        exploring = [self.src]
+        while len(exploring) != 0:
+            current_node = exploring.pop(0)
+            if  current_node in explored:
+                continue
             current_reach = self.reachable[current_node]
-            for next, edge in current_node.outgoing.items():
-                if edge in path:
+            for next, edge in get_node(self.graph, current_node).outgoing.items():
+                next = next.id
+                if next not in explored and edge in path:
                     next_reachable = self.reachable.get(next, 0)
                     if next_reachable == 0:
                         next_reachable = new_lit()
                         self.reachable[next] = next_reachable
                     constraint.append([IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
-                    current_node = next
-                    break
-            assert current_node != old_current
+                    exploring.append(next)
+            explored.add(current_node)
+
+
+
 
         if current_node != self.sink:
             self.reachable[self.sink] = new_lit()
@@ -66,7 +83,7 @@ class Reachability():
         explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
-            for target, edge in head.incoming.items():
+            for target, edge in get_node(self.graph, head).incoming.items():
                 if edge not in cut and target not in explored:
                     open.append(target)
                 explored.add(target)
@@ -87,7 +104,7 @@ class Reachability():
                 if depth == 0:
                     return FALSE()
                 obligation = []
-                for target, edge in node.incoming.items():
+                for target, edge in get_node(self.graph, node).incoming.items():
                     if edge not in cut:
                         t_depth_var = self._DSF(target, depth - 1, cut, constraint, cache, enabling_cond)
                     else:

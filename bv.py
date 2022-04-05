@@ -5,7 +5,7 @@ from numpy import zeros
 class BV():
     Bvs = {}
     def __init__(self, width, body, id =None):
-        assert width == 0 or len(body) == width
+        assert width == 0 or body is None or len(body) == width
 
         if body is None and width != 0:
             #this is the case for unassigned BV
@@ -20,12 +20,16 @@ class BV():
             self.id = len(BV.Bvs)
         else:
             self.id = id
-        BV.Bvs[id] = self
+        BV.Bvs[self.id] = self
 
     def assign(self):
         if not self.assigned:
-            self.body = [new_lit() for _ in self.width]
+            self.body = [new_lit() for _ in range(self.width)]
             self.assigned = True
+
+    def get_body(self):
+        self.assign()
+        return self.body
 
     def get_var(self, index):
         self.assign()
@@ -35,22 +39,22 @@ class BV():
     def set_var(self, index, var):
         self.assign()
         assert (index < self.width)
-        self.body[index] = var
+        self.get_body()[index] = var
 
     def extend(self, padding_num):
         self.assign()
-        return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.body)
+        return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.get_body())
 
     def self_extend(self, padding_num, pad=FALSE):
         self.assign()
         self.width = self.width+padding_num
-        self.body = [pad() for _ in range(padding_num)] + self.body
+        self.body = [pad() for _ in range(padding_num)] + self.get_body()
 
 def get_bv(id):
     return BV.Bvs.get(id)
 
 def sub_bv(bv, start, end):
-    return BV(end-start, bv.body[start:end])
+    return BV(end-start, bv.get_body()[start:end])
 
 
 def new_bv(width, set_var=True):
@@ -175,6 +179,9 @@ def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     bv3 = add_lower(bv1, bv2, constraint, bv3)
     add_upper(bv1, bv2, constraint, bv3)
     return bv3
+
+def bv_and(bv1, bit, constraints):
+    return BV(bv1.width, [AND(bv1.get_var(id), bit, constraints) for id in range(bv1.width)])
 
 
 '''
@@ -324,11 +331,11 @@ def nomrailize(bv1, bv2):
     if diff == 0:
         return bv1, bv2
     elif diff > 0:
-        padding_BV = BV(bv1.width, [FALSE() for _ in range(diff)] + bv2.body)
+        padding_BV = BV(bv1.width, [FALSE() for _ in range(diff)] + bv2.get_body())
         return bv1, padding_BV
     else:
-        padding_BV = BV(bv2.width, [FALSE() for _ in range(-diff)] + bv1.body)
-        return padding_BV, bv1
+        padding_BV = BV(bv2.width, [FALSE() for _ in range(-diff)] + bv1.get_body())
+        return padding_BV, bv2
 
 #assume bv1 and bv2 have the same width
 #return the constraint showing bv1 > bv2
@@ -365,6 +372,8 @@ def LE(bv1, bv2, constraints=global_inv):
     return GE(bv2, bv1, constraints)
 
 def Equal(bv1, bv2, constraints=global_inv):
+    if isinstance(bv1, int):
+        return Equal_const(bv2, bv1, constraints)
     if isinstance(bv2, int):
         return Equal_const(bv1, bv2, constraints)
     else:
@@ -388,7 +397,7 @@ def Equal_const(bv1, const, constraints=global_inv):
         return g_AND([IFF(bv1.get_var(i), ntob(const_bv[i]), constraints)   for i in range(width)], constraints)
 
 class Comparsion():
-    comparsions = {}
+    Collection = {}
     def __init__(self, bv1, bv2, op, lit=None):
         self.bv1 = bv1
         self.bv2 = bv2
@@ -410,7 +419,7 @@ class Comparsion():
             self.lit = new_lit()
         else:
             self.lit = lit
-        Comparsion.comparsions[(bv1.id, bv2.id, op)] = self
+        Comparsion.Collection[(bv1.id, bv2.id, op)] = self
 
     def encode(self, constraints=global_inv):
         if self.encoded:
@@ -427,7 +436,7 @@ def add_compare(bv1, bv2, op, lit, constraints = global_inv):
     if isinstance(bv2, int):
         bv2 = get_bv(bv2)
 
-    compare = Comparsion.comparsions.get((bv1.id, bv2.id, op), None)
+    compare = Comparsion.Collection.get((bv1.id, bv2.id, op), None)
     if compare is None:
         compare = Comparsion(bv1, bv2, op, lit)
         return compare
@@ -440,7 +449,7 @@ def add_compare_const(bv1, const, op, lit):
     if isinstance(bv1, int):
         bv1 = get_bv(bv1)
 
-    compare = Comparsion_const.comparsion_consts.get((bv1.id, const, op), None)
+    compare = Comparsion_const.Collection.get((bv1.id, const, op), None)
     if compare is None:
         compare = Comparsion_const(bv1, const, op, lit)
         return compare
@@ -452,7 +461,7 @@ def add_compare_const(bv1, const, op, lit):
 
 
 class Comparsion_const():
-    comparsion_consts = {}
+    Collection = {}
     def __init__(self, bv1, const, op, lit=None):
         self.bv1 = bv1
         self.const = const
@@ -474,7 +483,7 @@ class Comparsion_const():
             self.lit = new_lit()
         else:
             self.lit = lit
-        Comparsion_const.comparsion_consts[(bv1.id, const, op)] = self
+        Comparsion_const.Collection[(bv1.id, const, op)] = self
 
     def encode(self, constraints=global_inv):
         if self.encoded:
@@ -486,12 +495,12 @@ class Comparsion_const():
             return self.lit
 
 class EQ():
-    EQs = {}
+    Collection = {}
     def __init__(self, a, b):
         self.a = a
         self.b = b
-        EQ.EQs[(a,b)] = self
-        EQ.EQs[(b, a)] = self
+        EQ.Collection[(a,b)] = self
+        EQ.Collection[(b, a)] = self
         self.result = None
 
     def encode(self, constraints = global_inv):
@@ -501,11 +510,13 @@ class EQ():
         return self.result
 
 class ADD():
+    Collection = {}
     def __init__(self, result, bv1, bv2):
         self.result = result
         self.bv1 = bv1
         self.bv2 = bv2
         self.encoded = False
+        ADD.Collection[result] = self
 
     def encode(self, constraints = global_inv):
         if not self.encoded:
@@ -523,39 +534,29 @@ def add_Add(result, bv1, bv2):
     return ADD(result, bv1, bv2)
 
 def parse_const_comparsion(attributes):
-    if len(attributes) != 4:
-        return False
-    else:
-        op, lit, bv, const = attributes
-        add_compare_const(int(bv), int(const), op, int(lit))
-        return True
+    assert (len(attributes) == 4)
+    op, lit, bv, const = attributes
+    add_compare_const(int(bv), int(const), op, int(lit))
+    return True
 
 def parse_comparsion(attributes):
-    if len(attributes) != 4:
-        return False
-    else:
-        op, lit, bv1, bv2 = attributes
-        add_compare(int(bv1), int(bv2), op, int(lit))
-        return True
+    assert (len(attributes) == 4)
+    op, lit, bv1, bv2 = attributes
+    add_compare(int(bv1), int(bv2), op, int(lit))
+    return True
 
 def parse_addition(attributes):
-    if len(attributes) != 3:
-        return False
-    else:
-        result, bv1, bv2 = attributes
-        add_Add(int(result), int(bv1), int(bv2))
-        return True
+    assert (len(attributes) == 3)
+    result, bv1, bv2 = attributes
+    add_Add(int(result), int(bv1), int(bv2))
+    return True
 
 
 
 def parse_bv(attributes):
-    if len(attributes) < 2:
-        return False
-    else:
-        id = attributes[0]
-        width = attributes[1]
-        if len(attributes) != int(width) + 2:
-            return False
-        else:
-            BV(int(width), [int(i) for i in attributes[2:]], int(id))
-            return True
+    assert (len(attributes) >= 2)
+    id = attributes[0]
+    width = attributes[1]
+    assert (len(attributes) == int(width) + 2)
+    BV(int(width), [int(i) for i in attributes[2:]], int(id))
+    return True

@@ -4,6 +4,18 @@ true_lit = 0
 false_lit = 0
 global_inv = []
 
+def add_lit(num):
+    global lits
+    if num < 0:
+        max_num = -num
+    else:
+        max_num = num
+
+    if lits < max_num:
+        lits = max_num
+
+    return num
+
 def new_lit():
     global lits
     target = lits+1
@@ -40,6 +52,11 @@ def write_dimacs(filename, clauses):
 
         for clause in all_clauses:
             outfile.write("{} 0 \n".format(' '.join([str(b) for b in clause])))
+
+def write_proofs(filename, proofs):
+    with open(filename, 'w') as outfile:
+        for lemma in proofs:
+            outfile.write("{} \n".format(lemma))
 
 def l_reset():
     global true_lit, false_lit, lits

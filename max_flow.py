@@ -3,9 +3,11 @@ from graph import *
 from reachability import Reachability
 
 class Maxflow():
-    maxflows = {}
+    Collection = {}
 
     def __init__(self, graph, src, sink, target_flow, lit = None):
+        if isinstance(graph, int):
+            graph = Graph.Graphs[graph]
         self.graph = graph
         self.src = src
         self.sink = sink
@@ -14,9 +16,47 @@ class Maxflow():
             self.lit = new_lit()
         else:
             self.lit = lit
-        Maxflow.maxflows[lit] = self
+        Maxflow.Collection[lit] = self
 
-    def encode(self, hint, satisifed, constraint):
+    def encode(self, constraint):
+        predicate = self.lit
+
+        #max flow ge encoding
+        graph = self.graph
+        #recreate the flow assignment
+        flows = {}
+        for edge in graph.edges:
+            if edge.cap is None:
+                flows[edge] = 0
+            else:
+                flows[edge] = new_bv(edge.cap.width)
+
+        cond1 = self._encode_conservation(flows, constraint)
+        cond2 = self._encode_capacity_check(flows, constraint)
+        cond3 = GE(self._encode_in_flow(self.sink, flows, constraint), self.target_flow, constraint)
+        constraint.append([IMPLIES(g_AND([cond1, cond3, cond2],  constraint), predicate, constraint)])
+
+        #max flow lt encoding
+        cuts = {}
+        for edge in graph.edges:
+            if edge.cap is None:
+                cuts[edge] = FALSE()
+            else:
+                cuts[edge] = new_lit()
+
+        rch = Reachability(self.graph, self.src, self.sink)
+        def _cut_assignment(edge):
+            return AND(edge.lit, cuts[edge], constraint)
+
+        reachability = rch.encode(constraint, enabling_cond=_cut_assignment)
+        # cond 2: the sum of cut's cap must be less than the target flow
+        cond2 = self.check_cut_constraint_unhint(cuts,constraint)
+        constraint.append([IMPLIES(g_AND([AND(cond2, -reachability, constraint)], constraint), -predicate, constraint)])
+        return self.lit
+
+
+
+    def encode_with_hint(self, hint, satisifed, constraint):
         predicate = self.lit
 
         if satisifed:
@@ -29,7 +69,7 @@ class Maxflow():
             cond2 = self._encode_capacity_check(hint, constraint)
             #cond3 the flow in the target is larger then the said target
             cond3 = GE(self._encode_in_flow(self.sink, hint, constraint), self.target_flow, constraint)
-            constraint.append([g_AND([cond1, cond3, cond2], predicate, constraint)])
+            constraint.append([IMPLIES(g_AND([cond1, cond3, cond2], constraint), predicate, constraint)])
             return predicate
         else:
             #in case max-flow constraint is not satisfied, then the hint is the min-cut
@@ -41,16 +81,21 @@ class Maxflow():
                 if edge in hint:
                     return FALSE()
                 else:
-                    return AND(TRUE(), edge.lit, constraint)
+                    return edge.lit
 
-            reachability = rch.encode(hint, False, constraint, enabling_cond=_cut_assignment)
+            reachability = rch.encode_with_hint(hint, False, constraint, enabling_cond=_cut_assignment)
             #cond 2: the sum of cut's cap must be less than the target flow
             cond2 = self.check_cut_caps(hint, constraint)
-            constraint.append([IMPLIES(g_AND([cond2], constraint), -predicate, constraint)])
+            constraint.append([IMPLIES(g_AND([AND(cond2, -reachability, constraint)], constraint), -predicate, constraint)])
             return predicate
 
 
-
+    def check_cut_constraint_unhint(self, cuts, constraint):
+        sum_cap = 0
+        for edge in self.graph.edges:
+            if edge.cap is not None:
+                sum_cap = add_mono(sum_cap, bv_and(edge.cap, cuts[edge],constraint), constraint)
+        return -GT_const_strict(sum_cap, self.target_flow, constraint, equal=True)
 
     def check_cut_caps(self, cut, constraint):
         sum_cap = 0
@@ -61,18 +106,18 @@ class Maxflow():
 
     def _encode_in_flow(self, node, flows, constraint):
         in_flow = 0
-        for _, in_edge in node.incoming.items():
+        for _, in_edge in get_node(self.graph, node).incoming.items():
             flow = flows.get(in_edge, 0)
-            if flow > 0:
+            if isinstance(flow, BV) or  flow > 0:
                 in_flow = add(in_flow, flow, constraint)
 
         return in_flow
 
     def _encode_out_flow(self, node, flows, constraint):
         out_flow = 0
-        for _, out_edge in node.outgoing.items():
+        for _, out_edge in get_node(self.graph, node).outgoing.items():
             flow = flows.get(out_edge, 0)
-            if flow > 0:
+            if isinstance(flow, BV)  or flow > 0:
                 out_flow = add(out_flow, flow, constraint)
 
         return out_flow
@@ -80,7 +125,7 @@ class Maxflow():
     def _encode_capacity_check(self, flows, constraint):
         conditions = []
         for edge, flow_amount in flows.items():
-            if flow_amount > 0:
+            if isinstance(flow_amount, BV) or flow_amount > 0:
                 # the cap must be at least the flow amount
                 conditions.append(GE(edge.cap, flow_amount, constraint))
                 # the edge must be enabled

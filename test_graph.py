@@ -1,13 +1,13 @@
 from max_flow import *
 from z3 import Solver, sat, unsat
 from prover import Prover
-from solver import is_sat, get_proof
+from solver import is_sat, get_proof, optimize_proof
 
 if __name__ == "__main__":
     constraint = []
     g = Graph()
     mk_node = lambda : Node(g)
-    mk_edge = lambda src, target : add_edge(g, src, target)
+    mk_edge = lambda src, target : add_edge(g, src, target, weight = new_bv(8))
     node0 = mk_node()
     node1 = mk_node()
     node2 = mk_node()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     '''
     constraint.append([LT_const(add_mono(e02.cap, e21.cap, constraint), 250, constraint)])
     unsat_hint = [e02, e13]
-    mfunsat = mf05.encode(set(unsat_hint), False, constraint)
+    mfunsat = mf05.encode_with_hint(set(unsat_hint), False, constraint)
     constraint.append([mfunsat])
     #constraint.append([LT_const(e02.cap, 200, constraint)])
     constraint.append([LT_const(e13.cap, 251, constraint)])
@@ -66,7 +66,10 @@ if __name__ == "__main__":
     if is_sat(constraint + global_inv):
         assert (False)
     else:
-        print(len(get_proof(constraint + global_inv)))
+
+        proofs = get_proof(constraint + global_inv, optimize=True)
+        #proofs = optimize_proof(constraint + global_inv, proofs)
+        print(proofs)
         print("unsat")
 
 
