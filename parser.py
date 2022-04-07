@@ -2,7 +2,8 @@ from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
 from max_flow import parse_maxflow
 from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv
-from lit import add_lit
+from lit import add_lit, write_dimacs
+import os
 
 def parse_edge_bv(attributes):
     assert len(attributes) == 5
@@ -78,13 +79,15 @@ def parse_line(line, cnfs):
         else:
             assert False
 
+def reextension(source, new_ext):
+    pre, ext = os.path.splitext(source)
+    return pre+'.'+new_ext
 
 
-cnfs = parse_file("/Users/nickfeng/mono_encoding/diorama_maxflow.gnf")
-print(cnfs)
-print(len(cnfs))
+def extract_cnf(source):
+    target = reextension(source, "cnf")
+    cnfs = parse_file(source)
+    write_dimacs(target, cnfs)
 
-from predicate import *
-encoding = encode_all()
 
-print(len(encode_all()))
+extract_cnf("diorama_reach.gnf")
