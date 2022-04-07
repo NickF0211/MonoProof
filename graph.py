@@ -18,6 +18,9 @@ def add_graph(id):
     return graph
 
 
+def get_graph(id):
+    return Graph.Graphs.get(id)
+
 
 
 class Node():
@@ -89,8 +92,8 @@ def add_edge(graph, src, target, lit = None, weight =None):
 
 def parse_graph(attributes):
     #arg1, nodes, #arg2 edges, #arg3 id
-    assert (len(attributes) == 3)
-    _, _, id = attributes
+    assert (len(attributes) >= 3)
+    id = attributes[2]
     add_graph(int(id))
     return True
 

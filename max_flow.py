@@ -34,7 +34,7 @@ class Maxflow():
         cond1 = self._encode_conservation(flows, constraint)
         cond2 = self._encode_capacity_check(flows, constraint)
         cond3 = GE(self._encode_in_flow(self.sink, flows, constraint), self.target_flow, constraint)
-        constraint.append([IMPLIES(g_AND([cond1, cond3, cond2],  constraint), predicate, constraint)])
+        constraint.append([IMPLIES(predicate, g_AND([cond1, cond3, cond2],  constraint), constraint)])
 
         #max flow lt encoding
         cuts = {}
@@ -44,14 +44,19 @@ class Maxflow():
             else:
                 cuts[edge] = new_lit()
 
+
+
+
         rch = Reachability(self.graph, self.src, self.sink)
         def _cut_assignment(edge):
-            return AND(edge.lit, cuts[edge], constraint)
+            return AND(edge.lit, -cuts[edge], constraint)
 
         reachability = rch.encode(constraint, enabling_cond=_cut_assignment)
         # cond 2: the sum of cut's cap must be less than the target flow
         cond2 = self.check_cut_constraint_unhint(cuts,constraint)
-        constraint.append([IMPLIES(g_AND([AND(cond2, -reachability, constraint)], constraint), -predicate, constraint)])
+        #print(cond2)
+        #print(-reachability)
+        constraint.append([IMPLIES(-predicate, g_AND([AND(cond2, -reachability, constraint)], constraint), constraint)])
         return self.lit
 
 
@@ -95,7 +100,7 @@ class Maxflow():
         for edge in self.graph.edges:
             if edge.cap is not None:
                 sum_cap = add_mono(sum_cap, bv_and(edge.cap, cuts[edge],constraint), constraint)
-        return -GT_const_strict(sum_cap, self.target_flow, constraint, equal=True)
+        return LT(sum_cap, self.target_flow, constraint)
 
     def check_cut_caps(self, cut, constraint):
         sum_cap = 0
@@ -129,7 +134,7 @@ class Maxflow():
                 # the cap must be at least the flow amount
                 conditions.append(GE(edge.cap, flow_amount, constraint))
                 # the edge must be enabled
-                conditions.append(edge.lit)
+                conditions.append(IMPLIES(GT(flow_amount, 0, constraint), edge.lit, constraint))
 
         return g_AND(conditions, constraint)
 

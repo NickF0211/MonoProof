@@ -4,6 +4,22 @@ true_lit = 0
 false_lit = 0
 global_inv = []
 
+stack = []
+
+def push(target):
+    assert stack == [] or len(target) >= stack[-1]
+    stack.append(len(target))
+
+def pop(target):
+    if len(stack) == 0:
+        del target[:]
+    else:
+        f_len = stack.pop(-1)
+        del target[f_len:]
+
+
+
+
 def add_lit(num):
     global lits
     if num < 0:

@@ -36,8 +36,6 @@ class Reachability():
             return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond)
 
     def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
-        max_size = len(path)
-        step = 0
         # then the hint is the path from src to the sink
         #current_node = self.src
         explored = set()
@@ -48,20 +46,23 @@ class Reachability():
                 continue
             current_reach = self.reachable[current_node]
             for next, edge in get_node(self.graph, current_node).outgoing.items():
-                next = next.id
-                if next not in explored and edge in path:
+                if edge in path:
                     next_reachable = self.reachable.get(next, 0)
                     if next_reachable == 0:
                         next_reachable = new_lit()
                         self.reachable[next] = next_reachable
                     constraint.append([IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
-                    exploring.append(next)
+
+                    if edge not in explored:
+                        exploring.append(next)
+
             explored.add(current_node)
+            #print("{} {}".format(current_node, self.reachable[current_node]))
 
 
 
 
-        if current_node != self.sink:
+        if  self.sink not in explored:
             self.reachable[self.sink] = new_lit()
 
         constraint.append([IMPLIES(self.reachable[self.sink], predicate, constraint)])
@@ -111,7 +112,7 @@ class Reachability():
                         t_depth_var = TRUE()
 
                     obligation.append(AND(t_depth_var, enabling_cond(edge), constraint))
-            res = g_OR(obligation)
+            res = g_OR(obligation, constraint)
             cache[(node, depth)] = res
             return res
 
@@ -120,5 +121,7 @@ def parse_reach(attributes):
         return False
     else:
         gid, source, target, lit = attributes
-        Reachability(int(gid), int(source), int(target), lit = int(lit))
+        gid = int(gid)
+        graph = get_graph(gid)
+        Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit = int(lit))
         return True

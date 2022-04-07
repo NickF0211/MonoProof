@@ -10,6 +10,16 @@ def is_sat(cnfs):
     solver = Cadical(bootstrap_with=cnfs)
     return solver.solve()
 
+def get_model(cnfs):
+    solver = Cadical(bootstrap_with=cnfs)
+    if solver.solve():
+        return solver.get_model()
+    else:
+        return False
+
+def is_rat(cnfs):
+    return get_proof(cnfs, optimize=True) == ['0']
+
 def get_proof(cnfs, assumptions = None, optimize = False):
     additional_clause = []
     if assumptions is None:

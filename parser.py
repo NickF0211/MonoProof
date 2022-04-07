@@ -1,12 +1,14 @@
-from graph import parse_graph, parse_edge, parse_weighted_edge
+from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
 from max_flow import parse_maxflow
-from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion
+from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv
 from lit import add_lit
 
 def parse_edge_bv(attributes):
-    print("unimplemented")
-    assert (False)
+    assert len(attributes) == 5
+    graph_id, source, target, lit, bv_id = attributes
+    add_edge(int(graph_id), int(source), int(target), get_bv(int(bv_id)), int(lit))
+    return True
 
 def parse_file(file_name):
     with open(file_name, 'r') as file:
@@ -83,4 +85,6 @@ print(cnfs)
 print(len(cnfs))
 
 from predicate import *
+encoding = encode_all()
+
 print(len(encode_all()))
