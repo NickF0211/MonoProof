@@ -9,8 +9,8 @@ class Maxflow():
         if isinstance(graph, int):
             graph = Graph.Graphs[graph]
         self.graph = graph
-        self.src = src
-        self.sink = sink
+        self.src = get_node(self.graph, src)
+        self.sink = get_node(self.graph, sink)
         self.target_flow = target_flow
         if lit is None:
             self.lit = new_lit()
@@ -107,14 +107,14 @@ class Maxflow():
         for edge in cut:
             sum_cap = add_mono(sum_cap, edge.cap, constraint)
 
-        return  -GT_const_strict(sum_cap, self.target_flow, constraint, equal=True)
+        return  LT(sum_cap, self.target_flow, constraint)
 
     def _encode_in_flow(self, node, flows, constraint):
         in_flow = 0
         for _, in_edge in get_node(self.graph, node).incoming.items():
             flow = flows.get(in_edge, 0)
             if isinstance(flow, BV) or  flow > 0:
-                in_flow = add(in_flow, flow, constraint)
+                in_flow = add_mono(in_flow, flow, constraint)
 
         return in_flow
 
@@ -123,7 +123,7 @@ class Maxflow():
         for _, out_edge in get_node(self.graph, node).outgoing.items():
             flow = flows.get(out_edge, 0)
             if isinstance(flow, BV)  or flow > 0:
-                out_flow = add(out_flow, flow, constraint)
+                out_flow = add_mono(out_flow, flow, constraint)
 
         return out_flow
 
@@ -144,13 +144,13 @@ class Maxflow():
         for edge, _ in flows.items():
             #check incoming node conservation
             in_node = edge.src
-            if in_node not in considered_node and in_node != self.src:
+            if in_node not in considered_node and in_node != self.src and in_node != self.sink:
                 #now check each the conservation of the flows
                 conservation.append(self._encode_node_conservation(in_node, flows, constraint))
                 considered_node.add(in_node)
 
             out_node = edge.target
-            if out_node not in considered_node and out_node != self.sink:
+            if out_node not in considered_node and out_node != self.sink and out_node != self.src:
                 conservation.append(self._encode_node_conservation(out_node, flows, constraint))
                 considered_node.add(out_node)
 
@@ -166,12 +166,18 @@ def parse_maxflow(attributes):
         return False
     else:
         signature, gid, source, target, lit, targetflow = attributes
-        if signature == "maximum_flow_geq":
-            Maxflow(int(gid), int(source), int(target), int(targetflow), lit = int(lit))
-        elif signature == "maximum_flow_gt":
-            Maxflow(int(gid), int(source), int(target), int(targetflow)+1, lit=int(lit))
-        elif signature == "maximum_flow_lt":
-            Maxflow(int(gid), int(source), int(target), int(targetflow), lit=-int(lit))
-        elif signature == "maximum_flow_le":
-            Maxflow(int(gid), int(source), int(target), int(targetflow)+1, lit=-int(lit))
+        lit = add_lit(int(lit))
+        if "bv" in signature:
+            targetflow = get_bv(int(targetflow))
+        else:
+            targetflow = int(targetflow)
+
+        if signature.endswith("geq"):
+            Maxflow(int(gid), int(source), int(target), targetflow, lit = lit)
+        elif signature.endswith("gt"):
+            Maxflow(int(gid), int(source), int(target), targetflow+1, lit=lit)
+        elif signature.endswith("lt"):
+            Maxflow(int(gid), int(source), int(target), targetflow, lit=-lit)
+        elif signature.endswith("le"):
+            Maxflow(int(gid), int(source), int(target), targetflow+1, lit=-lit)
         return True

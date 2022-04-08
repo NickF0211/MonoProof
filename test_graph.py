@@ -27,7 +27,7 @@ if __name__ == "__main__":
 
 
     mf05 = Maxflow(g, node0, node5, 20)
-
+    '''
     sat_hint = {e02: 10, e24:10, e43: 5, e45:5, e01:10, e13:10, e35:15}
     #mfsat = mf05.encode_with_hint(sat_hint, True, constraint)
     mfsat = mf05.encode(constraint)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     constraint.append([LT_const(e13.cap, 10, constraint)])
     #constraint.append([GT_const(add(e13.cap, e02.cap, constraint), 4, constraint)])
     print(len(global_inv) + len(constraint))
-    '''
+
 
     model = get_model(constraint + global_inv)
     if model:

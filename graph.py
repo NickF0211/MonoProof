@@ -101,14 +101,14 @@ def parse_edge(attributes):
     #graph id, source, target, lit
     assert (len(attributes) == 4)
     gid, source, target, lit = attributes
-    add_edge(int(gid), int(source), int(target), lit = int(lit))
+    add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)))
     return True
 
 def parse_weighted_edge(attributes):
     assert (len(attributes) == 5)
     gid, source, target, lit, width = attributes
     bv = new_unassigned_bv(int(width))
-    add_edge(int(gid), int(source), int(target), lit = int(lit), weight=bv)
+    add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)), weight=bv)
     return True
 
 

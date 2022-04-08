@@ -123,5 +123,5 @@ def parse_reach(attributes):
         gid, source, target, lit = attributes
         gid = int(gid)
         graph = get_graph(gid)
-        Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit = int(lit))
+        Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit = add_lit(int(lit)))
         return True

@@ -2,13 +2,16 @@ from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
 from max_flow import parse_maxflow
 from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv
-from lit import add_lit, write_dimacs
+from lit import add_lit, write_dimacs, global_inv
 import os
+from predicate import encode_all
+from solver import is_sat, get_model, get_proof
+from bv import BV
 
 def parse_edge_bv(attributes):
     assert len(attributes) == 5
     graph_id, source, target, lit, bv_id = attributes
-    add_edge(int(graph_id), int(source), int(target), get_bv(int(bv_id)), int(lit))
+    add_edge(int(graph_id), int(source), int(target),  lit = int(lit), weight=get_bv(int(bv_id)))
     return True
 
 def parse_file(file_name):
@@ -38,6 +41,7 @@ def parse_header(attributes):
     add_lit(int(lits))
     return True
 
+ignore_list = ["solve", "node"]
 def parse_line(line, cnfs):
     line_token = line.split()
     if line_token == []:
@@ -69,13 +73,15 @@ def parse_line(line, cnfs):
             elif sub_header == "+":
                 return parse_addition(line_token[2:])
             elif sub_header == "const":
-                return parse_const_comparsion(line_token[1:])
+                return parse_const_comparsion(line_token[2:])
             elif sub_header in [">=", "<=", ">", "<"]:
                 return parse_comparsion(line_token[1:])
             else:
                 return False
         if header == "p":
             return parse_header(line_token[1:])
+        elif header in ignore_list:
+            return True
         else:
             assert False
 
@@ -90,4 +96,13 @@ def extract_cnf(source):
     write_dimacs(target, cnfs)
 
 
-extract_cnf("diorama_reach.gnf")
+cnfs = parse_file("max_flow.gnf")
+print(len(cnfs))
+cnfs += encode_all()
+print(len(cnfs))
+model = get_model(cnfs + global_inv)
+if model:
+    for bv in BV.Bvs.values():
+        print("bv {}: {}".format(bv.id, bv.get_value(model)))
+else:
+    print(get_proof(cnfs + global_inv, optimize=True))

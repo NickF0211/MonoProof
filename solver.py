@@ -64,7 +64,7 @@ def optimize_proof(input, proofs):
     write_proofs(proof_name, proofs)
     write_dimacs(input_name, input)
     try:
-        process = subprocess.Popen([drat_path, input_name, proof_name, "-p", "-l", temp_file],
+        process = subprocess.Popen([drat_path, input_name, proof_name, "-p", "-l",  temp_file],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         process.communicate()
         with open(temp_file, 'r') as optimized_proof:

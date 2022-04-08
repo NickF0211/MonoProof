@@ -20,7 +20,8 @@ class BV():
             self.id = len(BV.Bvs)
         else:
             self.id = id
-        BV.Bvs[self.id] = self
+        if id is not None:
+            BV.Bvs[self.id] = self
 
     def assign(self):
         if not self.assigned:
@@ -41,14 +42,25 @@ class BV():
         assert (index < self.width)
         self.get_body()[index] = var
 
-    def extend(self, padding_num):
+    def extend(self, padding_num, is_zeros = False):
         self.assign()
-        return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.get_body())
+        if is_zeros:
+            return BV(self.width + padding_num, [FALSE() for _ in range(padding_num)] + self.get_body())
+        else:
+            return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.get_body())
 
     def self_extend(self, padding_num, pad=FALSE):
         self.assign()
         self.width = self.width+padding_num
         self.body = [pad() for _ in range(padding_num)] + self.get_body()
+
+    def get_value(self, model):
+        value = 0
+        for i in range(self.width):
+            if model[self.get_var(i) -1] > 0:
+                value += 2 ** (self.width - i-1)
+        return value
+
 
 def get_bv(id):
     return BV.Bvs.get(id)
@@ -159,8 +171,13 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
         bv3 = new_bv(bv1.width+1)
         new_bv3 = bv3
     else:
-        assert bv3.width > bv1.width
-        new_bv3 = sub_bv(bv3, bv3.width - bv1.width-1, bv3.width)
+        diff = (bv1.width + 1) - bv3.width
+        if diff > 0:
+            new_bv3 = bv3.extend(diff, is_zeros=True)
+        elif diff < 0:
+            new_bv3 = sub_bv(bv3, bv3.width - bv1.width - 1, bv3.width)
+        else:
+            new_bv3  = bv3
 
     constriant.append([_add_upper(bv1,bv2,new_bv3, constriant)])
     return bv3
@@ -199,12 +216,17 @@ def add_lower(bv1, bv2, constriant=global_inv, bv3=None):
         bv3 = new_bv(bv1.width+1)
         new_bv3 = bv3
     else:
-        assert bv3.width > bv1.width
-        new_bv3 = sub_bv(bv3, bv3.width - bv1.width-1, bv3.width)
+        diff = (bv1.width + 1) - bv3.width
+        if diff  > 0:
+            new_bv3 = bv3.extend(diff, is_zeros=True)
+        elif diff < 0:
+            new_bv3 = sub_bv(bv3, bv3.width - bv1.width-1, bv3.width)
+        else:
+            new_bv3 = bv3
 
     #constriant.append([_add_lower(bv1,bv2,new_bv3, bv1.width, zeros(bv1.width+1, dtype=int), constriant)])
     constriant.append([_add_lower(bv1, bv2, new_bv3, constriant)])
-    return bv3
+    return new_bv3
 
 def _get_lower_bound_condition(bv1, bv2, bv3, i, constraint, storage=None):
     res = storage.get(i, None)
@@ -536,13 +558,13 @@ def add_Add(result, bv1, bv2):
 def parse_const_comparsion(attributes):
     assert (len(attributes) == 4)
     op, lit, bv, const = attributes
-    add_compare_const(int(bv), int(const), op, int(lit))
+    add_compare_const(int(bv), int(const), op, add_lit(int(lit)))
     return True
 
 def parse_comparsion(attributes):
     assert (len(attributes) == 4)
     op, lit, bv1, bv2 = attributes
-    add_compare(int(bv1), int(bv2), op, int(lit))
+    add_compare(int(bv1), int(bv2), op, add_lit(int(lit)))
     return True
 
 def parse_addition(attributes):
@@ -558,5 +580,5 @@ def parse_bv(attributes):
     id = attributes[0]
     width = attributes[1]
     assert (len(attributes) == int(width) + 2)
-    BV(int(width), [int(i) for i in attributes[2:]], int(id))
+    BV(int(width), [add_lit(int(i)) for i in attributes[2:]], int(id))
     return True
