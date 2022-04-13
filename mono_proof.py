@@ -94,5 +94,3 @@ def run_and_prove(gnf):
 
 
 
-run_and_prove("test.gnf")
-
