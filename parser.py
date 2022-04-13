@@ -1,12 +1,13 @@
 from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
 from max_flow import parse_maxflow
-from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv
+from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv, GE
 from lit import add_lit, write_dimacs, global_inv
 import os
-from predicate import encode_all
+from predicate import encode_all, pre_encode
 from solver import is_sat, get_model, get_proof
 from bv import BV
+from max_flow import *
 
 def parse_edge_bv(attributes):
     assert len(attributes) == 5
@@ -85,6 +86,151 @@ def parse_line(line, cnfs):
         else:
             assert False
 
+def parse_support(support_file):
+    with open(support_file, 'r') as file:
+        hint_map = {}
+        while True:
+            line = file.readline()
+            if line:
+                tokens = line.split("MF witness")
+                assert(len(tokens) == 2)
+                key, value = tokens
+                key = [int(l) for l in key.split()]
+                key.sort()
+                hint_map[' '.join([str(l) for l in key])] = value
+            else:
+                return hint_map
+
+def process_flow_witness(predicate, sup):
+    tokens = sup.split()[1:-1]
+    assert (len(tokens) %3 == 0)
+    i = 0
+    witness ={}
+    while i < len(tokens):
+        edge = get_edge(predicate.graph, int(tokens[i]), int(tokens[i+1]))
+        flow = int(tokens[i+2])
+        witness[edge] = flow
+        i += 3
+    return witness
+
+def process_cut_witness(predicate, sup):
+    tokens = sup.split()[1:-1]
+    assert (len(tokens) %2 == 0)
+    i = 0
+    cut =[]
+    while i < len(tokens):
+        edge = get_edge(predicate.graph, int(tokens[i]), int(tokens[i+1]))
+        cut.append(edge)
+        i += 2
+    return cut
+
+
+
+
+def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
+    #now scan the list, and check what has to be done
+    if verified_lemmas is None:
+        verified_lemmas = []
+    orig_lemma = lemmas[:-1]
+    lemmas.sort()
+    sup = support.get(' '.join([str(i) for i in lemmas]), None)
+    processed_witness = set()
+    for l in lemmas:
+        to_be_enocoded = []
+        mf = Maxflow.Collection.get(l, None)
+
+        if mf is not None:
+            if sup is not None:
+                support_head = int(sup.split()[0])
+                if sup not in processed_witness and support_head == mf.lit:
+                    flow_witness = process_flow_witness(mf, sup)
+                    mf.encode_with_hint(flow_witness, True, constraints)
+                    processed_witness.add(sup)
+            else:
+                mf.encode(constraints)
+
+
+        mf = Maxflow.Collection.get(-l, None)
+
+        if mf is not None:
+            if sup is not None:
+                support_head = int(sup.split()[0])
+                if sup not in processed_witness and support_head == -mf.lit:
+                    cut = process_cut_witness(mf, sup)
+                    mf.encode_with_hint(cut, False, constraints)
+                    processed_witness.add(sup)
+            else:
+                mf.encode(constraints)
+
+        reach = Reachability.Collection.get(l, None)
+        if reach is not None:
+            to_be_enocoded.append((reach, True))
+
+        reach = Reachability.Collection.get(-l, None)
+        if reach is not None:
+            to_be_enocoded.append((reach, False))
+
+    proof = get_proof(constraints + global_inv + verified_lemmas, orig_lemma, True)
+    return proof
+
+
+
+
+def scan_proof_obligation(obligation_file, constraints, support):
+    verified_lemmas = []
+    proofs = []
+    with open(obligation_file, 'r') as file:
+        lemma_confirmed = None
+        while True:
+            line = file.readline()
+            if line:
+                tokens = line.split()
+                assert len(tokens) > 0
+                header = tokens[0]
+                if lemma_confirmed is not None and header == 'Y':
+                    sub_proofs = process_theory_lemma(lemma_confirmed,support, constraints, verified_lemmas)
+                    verified_lemmas += sub_proofs
+                    proofs.append(sub_proofs)
+                    lemma_confirmed = None
+                elif header == 't':
+                    lemma_confirmed = [int(l) for l in tokens[1:]]
+            else:
+                print("finish parsing lemmas")
+                return proofs
+
+
+
+
+
+def scan_proof(proof_file):
+    lemmas = 0
+    theory_lemmas = 0
+    with open(proof_file, 'r') as file:
+        while True:
+            line = file.readline()
+            if line:
+                tokens = line.split()
+                assert (len(tokens) >= 0)
+                header = tokens[0]
+                if header == 'c' or header=='d':
+                    continue
+                elif header.isnumeric() or header.startswith('-') or header == 't':
+                    #in this case, the line is a proof statement
+                    lemmas += 1
+                    if header == 't':
+                        theory_lemmas += 1
+
+                    for lit in tokens:
+                        if lit.isnumeric() or lit.startswith('-'):
+                            add_lit(int(lit))
+                else:
+                    print("unknown proof format")
+                    assert False
+            else:
+                break
+        print("lemmas: {} ".format(lemmas))
+        print("theory lemmas: {} ".format(theory_lemmas))
+
 def reextension(source, new_ext):
     pre, ext = os.path.splitext(source)
     return pre+'.'+new_ext
@@ -94,15 +240,36 @@ def extract_cnf(source):
     target = reextension(source, "cnf")
     cnfs = parse_file(source)
     write_dimacs(target, cnfs)
+    return target
 
 
-cnfs = parse_file("max_flow.gnf")
-print(len(cnfs))
-cnfs += encode_all()
-print(len(cnfs))
+def reformat_proof(proof_file, formated_proof, theory_steps):
+    with open(formated_proof, 'w') as new_proof:
+        #theory steps are played backward
+        i = len(theory_steps)-1
+        while i >= 0:
+            proof = theory_steps[i]
+            for step in proof:
+                new_proof.write("{} 0\n".format(' '.join([str(i) for i in step])))
+            i -=1
+        #now write down the main proof
+        with open(proof_file, 'r') as proof:
+            while True:
+                line = proof.readline()
+                if line:
+                    if not line.startswith('t'):
+                        new_proof.write(line)
+                    else:
+                        continue
+                else:
+                    break
+
+
+'''
 model = get_model(cnfs + global_inv)
 if model:
     for bv in BV.Bvs.values():
         print("bv {}: {}".format(bv.id, bv.get_value(model)))
 else:
     print(get_proof(cnfs + global_inv, optimize=True))
+'''

@@ -12,6 +12,7 @@ class Maxflow():
         self.src = get_node(self.graph, src)
         self.sink = get_node(self.graph, sink)
         self.target_flow = target_flow
+        self.encoded = False
         if lit is None:
             self.lit = new_lit()
         else:
@@ -19,6 +20,9 @@ class Maxflow():
         Maxflow.Collection[lit] = self
 
     def encode(self, constraint):
+        if self.encoded:
+            return self.lit
+
         predicate = self.lit
 
         #max flow ge encoding
@@ -57,6 +61,7 @@ class Maxflow():
         #print(cond2)
         #print(-reachability)
         constraint.append([IMPLIES(-predicate, g_AND([AND(cond2, -reachability, constraint)], constraint), constraint)])
+        self.encoded = True
         return self.lit
 
 

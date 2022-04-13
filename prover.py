@@ -12,7 +12,7 @@ class Prover():
       self.Clauses = []
       self.conflict = False
       for c in cnfs:
-         if not self.add_clause(c):
+         if not self.add_clause(c.copy()):
             print("conflict by unit propagation")
             self.conflict = True
             break
@@ -31,6 +31,8 @@ class Prover():
 
 
    def propgate(self):
+      if self.conflict:
+         return False
       if not self.fact.unit_propgate():
          print("conflict by unit propagation")
          return False

@@ -4,6 +4,8 @@ from lit import write_proofs, write_dimacs
 import subprocess
 import os
 from uuid import uuid4
+from prover import Prover
+from lit import get_lits_num
 drat_path = "/Users/nickfeng/mono_encoding/drat-trim"
 
 def is_sat(cnfs):
@@ -27,14 +29,19 @@ def get_proof(cnfs, assumptions = None, optimize = False):
         final_collection = cnfs
     elif isinstance(assumptions, type([])):
         assumption_lit = g_OR(assumptions, additional_clause)
-        final_collection = cnfs + assumptions + [-assumption_lit]
+        final_collection = cnfs + [assumptions] + [[-assumption_lit]]
     elif isinstance(assumptions, int):
         assumption_lit = assumptions
-        final_collection = cnfs + assumptions + [-assumption_lit]
+        final_collection = cnfs + [assumptions] + [[-assumption_lit]]
         assumptions = [assumptions]
     else:
         print("unsupport proof request")
         assert False
+
+    #try prover first
+    p = Prover(get_lits_num(), final_collection)
+    if not p.propgate():
+        return [assumptions]
 
     with Lingeling(bootstrap_with=final_collection, with_proof=True) as solver:
         if solver.solve():
@@ -53,7 +60,11 @@ def get_proof(cnfs, assumptions = None, optimize = False):
 
 def _proof_cleanup(proof, assumption_lit, assumptions):
     proof.pop(-1)
-    return [[assumption_lit] + lemma for lemma in proof if not lemma.startswith("d")] + ["{} 0".format(' '.join(assumptions))]
+    if len(proof) == 0:
+        return [assumptions]
+    else:
+        format_proof = [[int(l) for l in lemma.split()[:-1]] for lemma in proof if not lemma.startswith("d")]
+        return [assumptions + lemma for lemma in format_proof] + [assumptions]
 
 
 def optimize_proof(input, proofs):

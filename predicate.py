@@ -3,7 +3,7 @@ from reachability import Reachability
 from max_flow import Maxflow
 
 predicate_list = [Comparsion, Comparsion_const, ADD, Reachability, Maxflow]
-
+pre_predicate_list = [Comparsion, Comparsion_const, ADD]
 
 def encode_predicate(predicate_class):
     constraints = []
@@ -15,5 +15,11 @@ def encode_predicate(predicate_class):
 def encode_all():
     result_constraints = []
     for predicate_class in predicate_list:
+        result_constraints += encode_predicate(predicate_class)
+    return result_constraints
+
+def pre_encode():
+    result_constraints = []
+    for predicate_class in pre_predicate_list:
         result_constraints += encode_predicate(predicate_class)
     return result_constraints

@@ -89,6 +89,17 @@ def add_edge(graph, src, target, lit = None, weight =None):
         target.incoming[src] = edge
         return edge
 
+def get_edge(graph, src, target):
+    if isinstance(graph, int):
+        graph = Graph.Graphs.get(graph, None)
+        assert graph is not None
+    assert isinstance(graph, Graph)
+    src = get_node(graph, src)
+    target = get_node(graph, target)
+    edge = src.outgoing.get(target, None)
+    assert edge is not None
+    return edge
+
 
 def parse_graph(attributes):
     #arg1, nodes, #arg2 edges, #arg3 id
@@ -99,9 +110,12 @@ def parse_graph(attributes):
 
 def parse_edge(attributes):
     #graph id, source, target, lit
-    assert (len(attributes) == 4)
-    gid, source, target, lit = attributes
-    add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)))
+    if (len(attributes) == 4):
+        gid, source, target, lit = attributes
+        add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)))
+    elif len(attributes) == 4:
+        gid, source, target, lit, weight = attributes
+        add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)), weight=int(weight))
     return True
 
 def parse_weighted_edge(attributes):

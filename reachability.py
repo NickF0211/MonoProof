@@ -15,6 +15,7 @@ class Reachability():
         self.sink = sink
         self.reachable = {}
         self.distance = dict()
+        self.encoded = set()
         if lit is not None:
             self.lit = lit
         else:
@@ -22,9 +23,12 @@ class Reachability():
         Reachability.Collection[lit] = self
 
     def encode(self, constraints, enabling_cond = _default_enabling_condition):
+        if enabling_cond in self.encoded:
+            return self.lit
         self.reachable[self.src] = TRUE()
         self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
         self.unreachability_constraint(set(), constraints, self.lit, enabling_cond)
+        self.encoded.add(enabling_cond)
         return self.lit
 
 
