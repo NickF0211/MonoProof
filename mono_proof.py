@@ -4,6 +4,8 @@ from parser import *
 import subprocess
 import os
 from solver import drat_path
+import sys
+sys.setrecursionlimit(10000)
 
 monosat_path =  "/Users/nickfeng/monosat/monosat"
 drat_trim_orig_path = '/Users/nickfeng/mono_encoding/drat-trim-orig'
@@ -92,5 +94,5 @@ def run_and_prove(gnf):
 
 
 
-
-
+#run_and_prove("max_flow.gnf")
+run_and_prove("2-ti_amk52e02.gnf")

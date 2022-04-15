@@ -28,13 +28,13 @@ def parse_file(file_name):
 
 
 def parse_clause(attributes):
-    results = []
+    results = set()
     for token in attributes:
-        assert (token.isnumeric() or token.startswith('-'))
+        #assert (token.isnumeric() or token.startswith('-'))
         if token == "0":
-            return results
+            return list(results)
         else:
-           results.append(add_lit(int(token)))
+           results.add(add_lit(int(token)))
 
 def parse_header(attributes):
     assert len(attributes) == 3
@@ -94,7 +94,7 @@ def parse_support(support_file):
             if line:
                 tokens = line.split("MF witness")
                 assert(len(tokens) == 2)
-                key, value = tokens
+                value, key = tokens
                 key = [int(l) for l in key.split()]
                 key.sort()
                 hint_map[' '.join([str(l) for l in key])] = value
@@ -114,15 +114,32 @@ def process_flow_witness(predicate, sup):
     return witness
 
 def process_cut_witness(predicate, sup):
-    tokens = sup.split()[1:-1]
-    assert (len(tokens) %2 == 0)
+    tokens = sup.split()[:-2]
+    assert (len(tokens) %3 == 0)
     i = 0
-    cut =[]
+    pesudo_cut_bv = set()
+    pesudo_cut_edge = set()
     while i < len(tokens):
-        edge = get_edge(predicate.graph, int(tokens[i]), int(tokens[i+1]))
-        cut.append(edge)
-        i += 2
-    return cut
+        f = int(tokens[i])
+        t =  int(tokens[i+1])
+        is_bv = tokens[i+2] == "flow"
+        is_edge = tokens[i+2] == "edge"
+        assert is_bv or is_edge
+        if is_bv:
+            pesudo_cut_bv.add((int(tokens[i]), int(tokens[i+1])))
+        elif is_edge:
+            pesudo_cut_edge.add((int(tokens[i]), int(tokens[i+1])))
+
+        i += 3
+
+    bv_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_bv])
+    edge_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_edge])
+
+    if len(bv_cut) > predicate.target_flow:
+        cut = bv_cut.union(edge_cut)
+        bv_cut = predicate.find_cut(cut, bv_cut)
+    #assert len(bv_cut) < predicate.target_flow
+    return (bv_cut, edge_cut)
 
 
 
@@ -141,7 +158,7 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
 
         if mf is not None:
             if sup is not None:
-                support_head = int(sup.split()[0])
+                support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == mf.lit:
                     flow_witness = process_flow_witness(mf, sup)
                     mf.encode_with_hint(flow_witness, True, constraints)
@@ -154,7 +171,7 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
 
         if mf is not None:
             if sup is not None:
-                support_head = int(sup.split()[0])
+                support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
                     mf.encode_with_hint(cut, False, constraints)
@@ -179,6 +196,8 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
 def scan_proof_obligation(obligation_file, constraints, support):
     verified_lemmas = []
     proofs = []
+    #the proof obligation need to be proved backwards
+    obligations = []
     with open(obligation_file, 'r') as file:
         lemma_confirmed = None
         while True:
@@ -188,15 +207,22 @@ def scan_proof_obligation(obligation_file, constraints, support):
                 assert len(tokens) > 0
                 header = tokens[0]
                 if lemma_confirmed is not None and header == 'Y':
-                    sub_proofs = process_theory_lemma(lemma_confirmed,support, constraints, verified_lemmas)
-                    verified_lemmas += sub_proofs
-                    proofs.append(sub_proofs)
+                    obligations.append(lemma_confirmed)
                     lemma_confirmed = None
                 elif header == 't':
                     lemma_confirmed = [int(l) for l in tokens[1:]]
             else:
-                print("finish parsing lemmas")
-                return proofs
+                print("finish reading lemmas")
+                break
+
+        reverse_obligation = obligations[::-1]
+        for lemma_confirmed in reverse_obligation:
+            sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, verified_lemmas)
+            verified_lemmas += sub_proofs
+            proofs.append(sub_proofs)
+
+        return proofs
+
 
 
 

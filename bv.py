@@ -580,5 +580,5 @@ def parse_bv(attributes):
     id = attributes[0]
     width = attributes[1]
     assert (len(attributes) == int(width) + 2)
-    BV(int(width), [add_lit(int(i)) for i in attributes[2:]], int(id))
+    BV(int(width), [add_lit(int(i)) for i in (attributes[2:])[::-1]], int(id))
     return True

@@ -22,30 +22,32 @@ def get_model(cnfs):
 def is_rat(cnfs):
     return get_proof(cnfs, optimize=True) == ['0']
 
-def get_proof(cnfs, assumptions = None, optimize = False):
+def get_proof(cnfs, assumptions = None, optimize = False, useProver=False):
     additional_clause = []
     if assumptions is None:
         assumption_lit = None
         final_collection = cnfs
     elif isinstance(assumptions, type([])):
         assumption_lit = g_OR(assumptions, additional_clause)
-        final_collection = cnfs + [assumptions] + [[-assumption_lit]]
+        final_collection = cnfs + additional_clause + [[-assumption_lit]]
     elif isinstance(assumptions, int):
         assumption_lit = assumptions
-        final_collection = cnfs + [assumptions] + [[-assumption_lit]]
+        final_collection = cnfs + additional_clause + [[-assumption_lit]]
         assumptions = [assumptions]
     else:
         print("unsupport proof request")
         assert False
 
     #try prover first
-    p = Prover(get_lits_num(), final_collection)
-    if not p.propgate():
-        return [assumptions]
+    if useProver:
+        p = Prover(get_lits_num(), final_collection)
+        if not p.propgate():
+            return [assumptions]
 
     with Lingeling(bootstrap_with=final_collection, with_proof=True) as solver:
         if solver.solve():
             print("assumption invalid")
+            assert False
         else:
             proofs = solver.get_proof()
             if optimize:

@@ -80,23 +80,72 @@ class Reachability():
         t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
         # the mono_encoding
         constraint.append([IMPLIES(predicate, t_final, constraint)])
+        print("done encoding")
         return predicate
 
     def compute_unreachable_graph(self, cut):
         explored = set()
         open = [self.sink]
-        explored.add(self.sink)
+        #explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
             for target, edge in get_node(self.graph, head).incoming.items():
                 if edge not in cut and target not in explored:
                     open.append(target)
-                explored.add(target)
+            explored.add(head)
         return explored
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):
+        print("start graph op")
         max_size = len(explored)
-        return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond)
+        print(max_size)
+        #print(cyclic)
+        if len(cut) == 0:
+            return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond)
+        else:
+            #use the information in the cut to perform the witness encoding
+            return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond)
+
+
+    def wtiness_reduced_unreachability(self, constraints, explored, enabling_cond):
+        def get_reachable(node):
+            if node == self.src:
+                return TRUE()
+            elif node in explored:
+                return FALSE()
+            else:
+                return TRUE()
+        validity_constraints = TRUE()
+        for node in explored:
+            obligation = []
+            for target, edge in get_node(self.graph, node).incoming.items():
+                obligation.append(OR(-enabling_cond(edge), -get_reachable(target), constraints))
+
+            validity_constraints = AND(validity_constraints,
+                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints),
+                                       constraints)
+
+        return OR(get_reachable(self.sink), NOT(validity_constraints), constraints)
+
+
+
+
+
+
+    def check_cyclic(self, head, cut, path, explored):
+        for target, edge in get_node(self.graph, head).incoming.items():
+            if edge not in cut and target not in explored:
+                if target in path:
+                    return True
+                else:
+                    path.add(target)
+                    if self.check_cyclic(target, cut, path, explored):
+                        return True
+                    else:
+                        path.remove(target)
+
+        return False
+
 
     def _DSF(self, node, depth, cut, constraint, cache, enabling_cond):
         res = cache.get((node, depth), None)
@@ -108,17 +157,21 @@ class Reachability():
             else:
                 if depth == 0:
                     return FALSE()
-                obligation = []
-                for target, edge in get_node(self.graph, node).incoming.items():
-                    if edge not in cut:
-                        t_depth_var = self._DSF(target, depth - 1, cut, constraint, cache, enabling_cond)
-                    else:
-                        t_depth_var = TRUE()
+                for d in range(1, depth+1):
+                    obligation = []
+                    if cache.get((node, d), None) is None:
+                        for target, edge in get_node(self.graph, node).incoming.items():
+                            if edge not in cut:
+                                t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond)
+                            else:
+                                t_depth_var = TRUE()
 
-                    obligation.append(AND(t_depth_var, enabling_cond(edge), constraint))
-            res = g_OR(obligation, constraint)
-            cache[(node, depth)] = res
-            return res
+                            obligation.append(AND(t_depth_var, enabling_cond(edge), constraint))
+                        res = g_OR(obligation, constraint)
+                        assert cache.get((node, d), None) is None
+                        cache[(node, d)] = res
+
+            return cache[(node, depth)]
 
 def parse_reach(attributes):
     if len(attributes) != 4:

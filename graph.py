@@ -11,6 +11,8 @@ class Graph():
         self.edges=[]
         Graph.Graphs[self.id] = self
 
+
+
 def add_graph(id):
     graph = Graph.Graphs.get(id, None)
     if graph is None:
@@ -113,7 +115,7 @@ def parse_edge(attributes):
     if (len(attributes) == 4):
         gid, source, target, lit = attributes
         add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)))
-    elif len(attributes) == 4:
+    elif len(attributes) == 5:
         gid, source, target, lit, weight = attributes
         add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)), weight=int(weight))
     return True

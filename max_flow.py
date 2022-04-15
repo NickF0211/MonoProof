@@ -82,20 +82,24 @@ class Maxflow():
             constraint.append([IMPLIES(g_AND([cond1, cond3, cond2], constraint), predicate, constraint)])
             return predicate
         else:
+            bv_cut, edge_cut = hint
+            bv_cut = set(bv_cut)
+            edge_cut = set(edge_cut)
+            all_cut = bv_cut.union(edge_cut)
             #in case max-flow constraint is not satisfied, then the hint is the min-cut
             # the verification encoding checks:
             #cond 1, the cut is indeed a cut, such that the sinks is unreachable under the cut
             rch = Reachability(self.graph, self.src, self.sink)
             #if an edge is in the cut, assume the edge is disabled
             def _cut_assignment(edge):
-                if edge in hint:
+                if edge in bv_cut:
                     return FALSE()
                 else:
                     return edge.lit
 
-            reachability = rch.encode_with_hint(hint, False, constraint, enabling_cond=_cut_assignment)
+            reachability = rch.encode_with_hint(all_cut, False, constraint, enabling_cond=_cut_assignment)
             #cond 2: the sum of cut's cap must be less than the target flow
-            cond2 = self.check_cut_caps(hint, constraint)
+            cond2 = self.check_cut_caps(bv_cut, constraint)
             constraint.append([IMPLIES(g_AND([AND(cond2, -reachability, constraint)], constraint), -predicate, constraint)])
             return predicate
 
@@ -109,8 +113,17 @@ class Maxflow():
 
     def check_cut_caps(self, cut, constraint):
         sum_cap = 0
+        sum_cap_bv = 0
+
         for edge in cut:
-            sum_cap = add_mono(sum_cap, edge.cap, constraint)
+            if isinstance(edge.cap, int):
+                sum_cap += edge.cap
+            else:
+                sum_cap_bv = add_mono(sum_cap_bv, edge.cap, constraint)
+
+        print(sum_cap)
+        print(self.target_flow)
+        sum_cap = add_mono(sum_cap, sum_cap_bv, constraint)
 
         return  LT(sum_cap, self.target_flow, constraint)
 
@@ -165,6 +178,42 @@ class Maxflow():
         in_flow = self._encode_in_flow(node, flows, constraint)
         out_flow = self._encode_out_flow(node, flows,constraint)
         return Equal(in_flow, out_flow, constraint)
+
+    def find_cut(self, pseudo_cut, bv_cut):
+        explored = set()
+        exploring = {self.src}
+        while len(exploring) > 0:
+            node = exploring.pop()
+            for target, edge in get_node(self.graph, node).outgoing.items():
+                if target == node:
+                    continue
+                elif edge in pseudo_cut:
+                    continue
+                else:
+                    if target not in explored and target not in exploring:
+                        exploring.add(target)
+
+            #now trace with backedge
+            for target, edge in get_node(self.graph, node).incoming.items():
+                if target == node:
+                    continue
+                elif edge not in bv_cut:
+                    continue
+                else:
+                    #backedge
+                    if target not in explored and target not in exploring:
+                        exploring.add(target)
+
+            explored.add(node)
+
+        assert self.sink not in explored
+        small_cut = []
+        for edge in bv_cut:
+            if edge.src in explored and edge.target not in explored:
+                small_cut.append(edge)
+
+        return small_cut
+
 
 def parse_maxflow(attributes):
     if len(attributes) != 6:
