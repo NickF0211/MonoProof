@@ -46,7 +46,7 @@ class Reachability():
         exploring = [self.src]
         while len(exploring) != 0:
             current_node = exploring.pop(0)
-            if  current_node in explored:
+            if current_node in explored:
                 continue
             current_reach = self.reachable[current_node]
             for next, edge in get_node(self.graph, current_node).outgoing.items():

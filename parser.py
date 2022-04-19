@@ -53,20 +53,8 @@ def parse_line(line, cnfs):
         if header.isnumeric() or header.startswith('-'):
             cnfs.append(parse_clause(line_token))
             return True
-        if header == "c":
-            return True
-        if header == "digraph":
-            return parse_graph(line_token[1:])
         elif header == "edge":
             return parse_edge(line_token[1:])
-        elif header == "weighted_edge":
-            return parse_weighted_edge(line_token[1:])
-        elif header == "edge_bv":
-            return parse_edge_bv(line_token[1:])
-        elif header == "reach":
-            return parse_reach(line_token[1:])
-        elif header.startswith("maximum_flow"):
-            return parse_maxflow(line_token)
         elif header == "bv":
             sub_header = line_token[1]
             if sub_header.isdigit():
@@ -79,10 +67,22 @@ def parse_line(line, cnfs):
                 return parse_comparsion(line_token[1:])
             else:
                 return False
-        if header == "p":
+        elif header == "weighted_edge":
+            return parse_weighted_edge(line_token[1:])
+        elif header == "edge_bv":
+            return parse_edge_bv(line_token[1:])
+        elif header == "reach":
+            return parse_reach(line_token[1:])
+        elif header.startswith("maximum_flow"):
+            return parse_maxflow(line_token)
+        elif header == "p":
             return parse_header(line_token[1:])
         elif header in ignore_list:
             return True
+        elif header == "c":
+            return True
+        elif header == "digraph":
+            return parse_graph(line_token[1:])
         else:
             assert False
 
@@ -135,7 +135,7 @@ def process_cut_witness(predicate, sup):
     bv_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_bv])
     edge_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_edge])
 
-    if len(bv_cut) > predicate.target_flow:
+    if isinstance(predicate.target_flow, int) and len(bv_cut) > predicate.target_flow:
         cut = bv_cut.union(edge_cut)
         bv_cut = predicate.find_cut(cut, bv_cut)
     #assert len(bv_cut) < predicate.target_flow
@@ -193,7 +193,7 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
 
 
 
-def scan_proof_obligation(obligation_file, constraints, support):
+def scan_proof_obligation(obligation_file, constraints, support, record=None):
     verified_lemmas = []
     proofs = []
     #the proof obligation need to be proved backwards
@@ -215,6 +215,9 @@ def scan_proof_obligation(obligation_file, constraints, support):
                 print("finish reading lemmas")
                 break
 
+        if record is not None:
+            record.set_theory_obligation(len(obligations))
+
         reverse_obligation = obligations[::-1]
         for lemma_confirmed in reverse_obligation:
             sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, verified_lemmas)
@@ -228,7 +231,7 @@ def scan_proof_obligation(obligation_file, constraints, support):
 
 
 
-def scan_proof(proof_file):
+def scan_proof(proof_file, record = None):
     lemmas = 0
     theory_lemmas = 0
     with open(proof_file, 'r') as file:
@@ -256,6 +259,10 @@ def scan_proof(proof_file):
                 break
         print("lemmas: {} ".format(lemmas))
         print("theory lemmas: {} ".format(theory_lemmas))
+        if record is not None:
+            record.set_lemma(lemmas)
+            record.set_theory_lemma(theory_lemmas)
+
 
 def reextension(source, new_ext):
     pre, ext = os.path.splitext(source)

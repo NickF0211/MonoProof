@@ -114,6 +114,13 @@ def GT_const(bv1, const, constraints=global_inv, equal = False):
             return bv1 >= const
         else:
             return bv1 > const
+    if const > (2 ** bv1.width) -1:
+        return FALSE()
+
+    if const >= (2 ** bv1.width) -1 and not equal:
+        return FALSE()
+
+
     const_bv = N_to_bit_array(const, bv1.width)
     assert bv1.width == len(const_bv)
     ch_c = TRUE()
@@ -582,3 +589,7 @@ def parse_bv(attributes):
     assert (len(attributes) == int(width) + 2)
     BV(int(width), [add_lit(int(i)) for i in (attributes[2:])[::-1]], int(id))
     return True
+
+
+def reset():
+    BV.Bvs = {}

@@ -23,3 +23,7 @@ def pre_encode():
     for predicate_class in pre_predicate_list:
         result_constraints += encode_predicate(predicate_class)
     return result_constraints
+
+def reset():
+    for predicate_class in predicate_list:
+        predicate_class.Collection.clear()

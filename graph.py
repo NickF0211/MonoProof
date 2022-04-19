@@ -127,6 +127,8 @@ def parse_weighted_edge(attributes):
     add_edge(int(gid), int(source), int(target), lit = add_lit(int(lit)), weight=bv)
     return True
 
+def reset():
+    Graph.Graphs ={}
 
 
 

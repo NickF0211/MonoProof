@@ -5,6 +5,11 @@ import subprocess
 import os
 from solver import drat_path
 import sys
+import graph
+import bv
+import predicate
+import logic_gate
+import lit
 sys.setrecursionlimit(10000)
 
 monosat_path =  "/Users/nickfeng/monosat/monosat"
@@ -19,11 +24,20 @@ def verify_theory(cnf_file, proof_file, obligation_file):
 
     return temp_file
 
-def launch_monosat(gnf_file, proof_file, support_file):
+def launch_monosat(gnf_file, proof_file, support_file, record = None):
     process = subprocess.Popen([monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     res =  "s UNSATISFIABLE" in stdout
+
+    if record is not None:
+        if res:
+            record.set_solving_result("UNSAT")
+        elif "s UNSATISFIABLE" in stdout:
+            record.set_solving_result("SAT")
+        else:
+            record.set_solving_result("Unknown/Error")
+
     return res
 
 
@@ -37,18 +51,33 @@ def verify_full_proof(cnf, proof_file):
         print(stdout)
     return result
 
-def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False):
+def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False, record = None):
+    start_time = time.time()
     cnf = parse_file(gnf_file)
     cnf_file = extract_cnf(gnf_file)
-    scan_proof(proof_file)
+    parsing_time_end = time.time()
+    print("cnf reading time {}".format(parsing_time_end - start_time))
+    start_time = parsing_time_end
+    scan_proof(proof_file, record)
+    parsing_time_end = time.time()
+    print("proof reading time {}".format(parsing_time_end - start_time))
+    start_time = parsing_time_end
     cnf += pre_encode()
     obligation_file = reextension(gnf_file, "obg")
-
+    parsing_time_end = time.time()
+    print("parsing + pre_encoding {}".format(parsing_time_end - start_time))
+    start_time = parsing_time_end
     optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    parsing_time_end = time.time()
+    print("theory processing time {}".format(parsing_time_end - start_time))
+    start_time = parsing_time_end
 
     hint_map = parse_support(support_file)
-    proofs = scan_proof_obligation(obligation_file, cnf, hint_map)
+    proofs = scan_proof_obligation(obligation_file, cnf, hint_map, record)
 
+    parsing_time_end = time.time()
+    print("theory verification time {}".format(parsing_time_end - start_time))
+    start_time = parsing_time_end
 
     reformat_proof(optimizied_proof, output_proof, proofs)
     write_dimacs(output_encoding, cnf + global_inv)
@@ -60,39 +89,133 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
 
     return
 
+def load_record(record_string):
+    new_record = Record("test")
+    new_record.load(record_string)
+    return new_record
+
+class Record():
 
 
-def run_and_prove(gnf):
+    def __init__(self, name):
+        self.name = name
+        self.solving_result = "unknown"
+        self.solving_time = -1
+        self.proof_preparing_time = -1
+        self.proof_verification_time = -1
+        self.lemma = 0
+        self.theory_lemma = 0
+        self.theory_obligation = 0
+        self.verification_result = "unknown"
+
+        self.attribute_names = ["name", "solving_result", "solving_time",
+                           "proof_preparing_time", "proof_verification_time",
+                           "lemma", "theory_lemma", "theory_obligation",
+                           "verification_result"]
+
+        self.header_names = ["Name", "Solving result", "Solving time",
+                                "Proof preparing time, Proof verification time",
+                                "Lemmas", "Theory lemmas", "Theory obligations",
+                                "Verification result"]
+
+    def get_attributes(self):
+        return [self.name, self.solving_result, self.solving_time,
+                           self.proof_preparing_time, self.proof_verification_time,
+                           self.lemma, self.theory_lemma, self.theory_obligation,
+                           self.verification_result]
+
+    def set_solving_result(self, result):
+        self.solving_result = result
+
+    def set_solving_time(self, solving_time):
+        self.solving_time = solving_time
+
+    def set_proof_preparing_time(self, proof_preparing_time):
+        self.proof_preparing_time = proof_preparing_time
+
+    def set_proof_verification_time(self, proof_verification_time):
+        self.proof_verification_time = proof_verification_time
+
+    def set_lemma(self, lemma):
+        self.lemma = lemma
+
+    def set_theory_lemma(self, theory_lemma):
+        self.theory_lemma = theory_lemma
+
+    def set_theory_obligation(self, theory_obligation):
+        self.theory_obligation = theory_obligation
+
+    def set_verification_result(self, verification_result):
+        self.verification_result = verification_result
+
+    def __str__(self):
+        return ','.join([str(ele) for ele in self.get_attributes()])
+
+    def print_header(self):
+        return ','.join(self.header_names)
+
+    def load(self, input):
+        tokens = input
+        assert len(tokens) == len(self.get_attributes())
+        for i in range(len(self.attribute_names)):
+            setattr(self, self.attribute_names[i], tokens[i])
+
+
+
+
+
+
+
+def run_and_prove(gnf, record = None):
+    if record is None:
+        record = Record(gnf)
+
     start_time = time.time()
     assert os.path.exists(gnf)
     proof_file = reextension(gnf, "proof")
     support_file = reextension(gnf, "support")
-    unsat = launch_monosat(gnf, proof_file, support_file)
+    print("start solving")
+    unsat = launch_monosat(gnf, proof_file, support_file, record)
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
+    record.set_solving_time(solving_time)
     print("solving with certificate time: {}".format(solving_time))
     if unsat:
         assert os.path.exists(support_file)
         assert os.path.exists(proof_file)
         output_cnf = reextension(gnf, 'cnf')
-        verify_proof(gnf, proof_file, support_file, output_cnf, proof_file)
+        verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=record)
         tick = time.time()
         solving_time = tick - start_time
         start_time = tick
+        record.proof_preparing_time = (solving_time)
         print("proof preparing time: {}".format(solving_time))
         res = verify_full_proof(output_cnf, proof_file)
         if res:
+            record.set_verification_result(True)
             print("Verified")
+        else:
+            record.set_verification_result(False)
         tick = time.time()
         solving_time = tick - start_time
+        record.set_proof_verification_time(solving_time)
         print("proof checking time: {}".format(solving_time))
         return res
     else:
         print("monosat decided the instance is SAT")
         return False
 
+def reset():
+    graph.reset()
+    bv.reset()
+    predicate.reset()
+    logic_gate.reset()
+    l_reset()
 
 
-#run_and_prove("max_flow.gnf")
-run_and_prove("2-ti_amk52e02.gnf")
+
+
+if __name__ == "__main__":
+    run_and_prove("max_flow.gnf")
+    #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/2-nodag-nodiff-trvs-xilinx_flgc2377.gnf")
