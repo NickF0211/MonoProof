@@ -144,7 +144,7 @@ def process_cut_witness(predicate, sup):
 
 
 
-def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
+def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None):
     #now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -161,10 +161,12 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == mf.lit:
                     flow_witness = process_flow_witness(mf, sup)
-                    mf.encode_with_hint(flow_witness, True, constraints)
+                    mf.encode_with_hint(flow_witness, True, new_constraints)
                     processed_witness.add(sup)
+                else:
+                    print("hi encoded")
             else:
-                mf.encode(constraints)
+                mf.encode(new_constraints)
 
 
         mf = Maxflow.Collection.get(-l, None)
@@ -174,10 +176,12 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
-                    mf.encode_with_hint(cut, False, constraints)
+                    mf.encode_with_hint(cut, False, new_constraints)
                     processed_witness.add(sup)
+                else:
+                    print("hi encoded")
             else:
-                mf.encode(constraints)
+                mf.encode(new_constraints)
 
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
@@ -187,13 +191,14 @@ def process_theory_lemma(lemmas, support, constraints, verified_lemmas=None):
         if reach is not None:
             to_be_enocoded.append((reach, False))
 
-    proof = get_proof(constraints + global_inv + verified_lemmas, orig_lemma, True)
+    proof = [orig_lemma]
+    #proof = get_proof(constraints + global_inv + verified_lemmas + new_constraints, orig_lemma, True)
     return proof
 
 
 
 
-def scan_proof_obligation(obligation_file, constraints, support, record=None):
+def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None):
     verified_lemmas = []
     proofs = []
     #the proof obligation need to be proved backwards
@@ -219,10 +224,15 @@ def scan_proof_obligation(obligation_file, constraints, support, record=None):
             record.set_theory_obligation(len(obligations))
 
         reverse_obligation = obligations[::-1]
+        processed = 0
         for lemma_confirmed in reverse_obligation:
-            sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, verified_lemmas)
+            sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content, verified_lemmas)
             verified_lemmas += sub_proofs
             proofs.append(sub_proofs)
+            processed += 1
+            print(processed)
+            if len(new_constraints.content) > new_constraints.cap:
+                new_constraints.flush()
 
         return proofs
 
@@ -264,9 +274,9 @@ def scan_proof(proof_file, record = None):
             record.set_theory_lemma(theory_lemmas)
 
 
-def reextension(source, new_ext):
+def reextension(source, new_ext, suffix=''):
     pre, ext = os.path.splitext(source)
-    return pre+'.'+new_ext
+    return pre+suffix+'.'+new_ext
 
 
 def extract_cnf(source):

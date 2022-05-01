@@ -80,7 +80,6 @@ class Reachability():
         t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
         # the mono_encoding
         constraint.append([IMPLIES(predicate, t_final, constraint)])
-        print("done encoding")
         return predicate
 
     def compute_unreachable_graph(self, cut):
@@ -96,9 +95,7 @@ class Reachability():
         return explored
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):
-        print("start graph op")
         max_size = len(explored)
-        print(max_size)
         #print(cyclic)
         if len(cut) == 0:
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond)

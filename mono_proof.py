@@ -67,20 +67,22 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     parsing_time_end = time.time()
     print("parsing + pre_encoding {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
+    write_dimacs(cnf_file, cnf)
     optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
     parsing_time_end = time.time()
     print("theory processing time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
-
     hint_map = parse_support(support_file)
-    proofs = scan_proof_obligation(obligation_file, cnf, hint_map, record)
+    addition_encoder = CNFWriter(cnf_file)
+    proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record)
 
     parsing_time_end = time.time()
     print("theory verification time {}".format(parsing_time_end - start_time))
-    start_time = parsing_time_end
-
+    addition_encoder.flush()
+    addition_encoder.close()
+    rewrite_header(cnf_file, output_encoding, cnf, addition_encoder)
     reformat_proof(optimizied_proof, output_proof, proofs)
-    write_dimacs(output_encoding, cnf + global_inv)
+    #write_dimacs(output_encoding, cnf + global_inv)
     if not debug:
         if os.path.exists(obligation_file):
             os.remove(obligation_file)
@@ -162,10 +164,6 @@ class Record():
 
 
 
-
-
-
-
 def run_and_prove(gnf, record = None):
     if record is None:
         record = Record(gnf)
@@ -184,7 +182,7 @@ def run_and_prove(gnf, record = None):
     if unsat:
         assert os.path.exists(support_file)
         assert os.path.exists(proof_file)
-        output_cnf = reextension(gnf, 'cnf')
+        output_cnf = reextension(gnf, 'cnf', suffix="complete")
         verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=record)
         tick = time.time()
         solving_time = tick - start_time
@@ -217,5 +215,12 @@ def reset():
 
 
 if __name__ == "__main__":
-    run_and_prove("max_flow.gnf")
+    gnf = "ti_amk52e04.gnf"
+    proof_file = "ti_amk52e04.proof"
+    support_file = "ti_amk52e04.support"
+    output_cnf = reextension(gnf, 'cnf', suffix="_complete")
+    #parse_support(support_file)
+    verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
+    #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/1-nodag-nodiff-trvs-altera_10ax048_780.gnf")
+    #run_and_prove("max_flow.gnf")
     #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/2-nodag-nodiff-trvs-xilinx_flgc2377.gnf")

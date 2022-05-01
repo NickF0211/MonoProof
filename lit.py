@@ -69,6 +69,17 @@ def write_dimacs(filename, clauses):
         for clause in all_clauses:
             outfile.write("{} 0 \n".format(' '.join([str(b) for b in clause])))
 
+import shutil
+def rewrite_header(sourcefile, filename, cnf, addition_encoder):
+    with open(sourcefile, 'r') as infile:
+        with open(filename, 'w') as outfile:
+            clause_len = len(cnf)+len(global_inv)+ addition_encoder.size
+            infile.readline()
+            outfile.write("p cnf {} {} \n".format(str(lits), str(clause_len)))
+            shutil.copyfileobj(infile, outfile)
+
+
+
 def write_proofs(filename, proofs):
     with open(filename, 'w') as outfile:
         for lemma in proofs:
@@ -80,3 +91,22 @@ def l_reset():
     false_lit = 0
     lits = 0
     global_inv.clear()
+
+class CNFWriter():
+    def __init__(self, output_file, mode ='a'):
+        self.size = 0
+        self.cap = 10000
+        self.file = open(output_file, mode)
+        self.content = []
+
+
+    def flush(self):
+        for clause in self.content:
+            self.file.write("{} 0 \n".format(' '.join([str(b) for b in clause])))
+        self.size += len(self.content)
+        self.content.clear()
+        self.file.flush()
+
+
+    def close(self):
+        self.file.close()

@@ -22,7 +22,7 @@ if __name__ == "__main__":
     with open(output_file, 'w') as csvfile:
         writer = csv.writer(csvfile, delimiter=',', quotechar='|')
         header = Record("header")
-        csvfile.write(header.print_header())
+        csvfile.write(header.print_header() +'\n')
         for inst in instances:
             record = Record(inst)
             if not overwrite and inst in Records:
