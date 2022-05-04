@@ -87,27 +87,34 @@ class Reachability():
             #in case cut-inward
             if head in self.unreach_hint_old_explored:
                 #now computes what has being removed
-                exploring = [e.src]
-                while exploring != []:
-                    head = exploring.pop()
-                    removed.add(head)
-                    for target, edge in get_node(self.graph, head).incoming.items():
-                        if not(edge in new_edges) and target in self.unreach_hint_old_explored  and not (target in removed):
-                            exploring.append(target)
+                if e.src in self.unreach_hint_old_explored:
+                    exploring = [e.src]
+                    while exploring != []:
+                        head = exploring.pop()
+                        if head in removed:
+                            continue
+                        else:
+                            removed.add(head)
+                            for target, edge in get_node(self.graph, head).incoming.items():
+                                if not(edge in new_edges) and target in self.unreach_hint_old_explored  and not (target in removed):
+                                    exploring.append(target)
 
             else:
                 #in case cut-outward
                 exploring = [e.target]
                 while exploring != []:
                     head = exploring.pop()
-                    new_explored.add(head)
-                    for target, edge in get_node(self.graph, head).outgoing.items():
-                        if not (edge in new_edges) and not (target in new_explored):
-                            if not (target in self.unreach_hint_old_explored):
-                                exploring.append(target)
-                            else:
-                                # toched set has a new reason to build
-                                touched.add(target)
+                    if head in new_explored:
+                        continue
+                    else:
+                        new_explored.add(head)
+                        for target, edge in get_node(self.graph, head).outgoing.items():
+                            if not (edge in new_edges) and not (target in new_explored):
+                                if not (target in self.unreach_hint_old_explored):
+                                    exploring.append(target)
+                                else:
+                                    # toched set has a new reason to build
+                                    touched.add(target)
 
         touched = touched.union(new_explored)
 
@@ -126,9 +133,7 @@ class Reachability():
             else:
                 #now analyze what is the differnce in cut
                 removed_flow_cut = self.old_flow_cut.difference(flow_cut)
-                add_edges = cut.difference(self.unreach_hint_old_cut)
-                add, removed, touched = self.check_delta_explored(add_edges, cut)
-                explored = self.unreach_hint_old_explored.difference(removed).union(add)
+                explored, touched = self.compute_unreachable_delta(cut)
                 for e in removed_flow_cut:
                     touched.add(e.target)
                 t_final = AND(self.old_t_final, self.compute_unreachable_graph_by_cut_delta( constraint, touched, explored, enabling_cond), constraint)
@@ -153,11 +158,36 @@ class Reachability():
         #explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
-            explored.add(head)
-            for target, edge in get_node(self.graph, head).incoming.items():
-                if edge not in cut and target not in explored:
-                    open.append(target)
+            if head in explored:
+                continue
+            else:
+                explored.add(head)
+                for target, edge in get_node(self.graph, head).incoming.items():
+                    if edge not in cut and target not in explored:
+                        open.append(target)
         return explored
+
+    def compute_unreachable_delta(self, cut):
+        explored = set()
+        touched = set()
+        open = [self.sink]
+        # explored.add(self.sink)
+        while len(open) != 0:
+            head = open.pop()
+            if head in explored:
+                continue
+            else:
+                explored.add(head)
+                if head not in self.unreach_hint_old_explored:
+                    touched.add(head)
+                for target, edge in get_node(self.graph, head).incoming.items():
+                    if edge not in cut and target not in explored:
+                        open.append(target)
+                        if edge in self.unreach_hint_old_cut:
+                            touched.add(head)
+
+        return explored, touched
+
 
     def compute_unreachable_graph_by_cut_delta(self, constraints, touched, explored, enabling_cond):
         def get_reachable(node):
