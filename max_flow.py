@@ -17,6 +17,7 @@ class Maxflow():
             self.lit = new_lit()
         else:
             self.lit = lit
+        self.reachability = None
         Maxflow.Collection[lit] = self
 
     def encode(self, constraint):
@@ -66,7 +67,7 @@ class Maxflow():
 
 
 
-    def encode_with_hint(self, hint, satisifed, constraint):
+    def encode_with_hint(self, hint, satisifed, constraint, dynamic= False):
         predicate = self.lit
 
         if satisifed:
@@ -89,7 +90,10 @@ class Maxflow():
             #in case max-flow constraint is not satisfied, then the hint is the min-cut
             # the verification encoding checks:
             #cond 1, the cut is indeed a cut, such that the sinks is unreachable under the cut
-            rch = Reachability(self.graph, self.src, self.sink)
+            if self.reachability is None:
+                self.reachability = Reachability(self.graph, self.src, self.sink)
+
+            rch = self.reachability
             #if an edge is in the cut, assume the edge is disabled
             def _cut_assignment(edge):
                 if edge in bv_cut:
@@ -97,7 +101,7 @@ class Maxflow():
                 else:
                     return edge.lit
 
-            reachability = rch.encode_with_hint(all_cut, False, constraint, enabling_cond=_cut_assignment)
+            reachability = rch.encode_with_hint(all_cut, False, constraint, enabling_cond=_cut_assignment, dynamic=dynamic, flow_cut=bv_cut)
             #cond 2: the sum of cut's cap must be less than the target flow
             cond2 = self.check_cut_caps(bv_cut, constraint)
             constraint.append([IMPLIES(g_AND([AND(cond2, -reachability, constraint)], constraint), -predicate, constraint)])

@@ -20,6 +20,12 @@ class Reachability():
             self.lit = lit
         else:
             self.lit = new_lit()
+
+        self.unreach_hint_old_explored = None
+        self.unreach_hint_old_cut = None
+        self.old_t_final = None
+        self.old_flow_cut = None
+
         Reachability.Collection[lit] = self
 
     def encode(self, constraints, enabling_cond = _default_enabling_condition):
@@ -32,12 +38,12 @@ class Reachability():
         return self.lit
 
 
-    def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition):
+    def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition, dynamic= False, flow_cut=None):
         self.reachable[self.src] = TRUE()
         if reachable:
             return self.reachability_constraint(hint, constraint, self.lit, enabling_cond)
         else:
-            return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond)
+            return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond, dynamic = dynamic, flow_cut=flow_cut)
 
     def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
         # then the hint is the path from src to the sink
@@ -72,15 +78,74 @@ class Reachability():
         constraint.append([IMPLIES(self.reachable[self.sink], predicate, constraint)])
         return predicate
 
-    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond = _default_enabling_condition):
+    def check_delta_explored(self, add_edges, new_edges):
+        touched = set()
+        new_explored = set()
+        removed = set()
+        for e in add_edges:
+            head = e.target
+            #in case cut-inward
+            if head in self.unreach_hint_old_explored:
+                #now computes what has being removed
+                exploring = [e.src]
+                while exploring != []:
+                    head = exploring.pop()
+                    removed.add(head)
+                    for target, edge in get_node(self.graph, head).incoming.items():
+                        if not(edge in new_edges) and target in self.unreach_hint_old_explored  and not (target in removed):
+                            exploring.append(target)
+
+            else:
+                #in case cut-outward
+                exploring = [e.target]
+                while exploring != []:
+                    head = exploring.pop()
+                    new_explored.add(head)
+                    for target, edge in get_node(self.graph, head).outgoing.items():
+                        if not (edge in new_edges) and not (target in new_explored):
+                            if not (target in self.unreach_hint_old_explored):
+                                exploring.append(target)
+                            else:
+                                # toched set has a new reason to build
+                                touched.add(target)
+
+        touched = touched.union(new_explored)
+
+        return new_explored, removed, touched
+
+
+    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond = _default_enabling_condition, dynamic = False, flow_cut = None):
         # each node contains two boolean variable, init, and final. init is true for the src,
         # final takes about weather the node will eventually be reachable from the source
-        explored = self.compute_unreachable_graph(cut)
-        # in case unreachable, the hint is a cut that separates the source from the sink
-        t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
-        # the mono_encoding
-        constraint.append([IMPLIES(predicate, t_final, constraint)])
-        return predicate
+        if dynamic:
+            if self.unreach_hint_old_explored is None:
+                explored = self.compute_unreachable_graph(cut)
+                t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
+                # the mono_encoding
+                constraint.append([IMPLIES(predicate, t_final, constraint)])
+            else:
+                #now analyze what is the differnce in cut
+                removed_flow_cut = self.old_flow_cut.difference(flow_cut)
+                add_edges = cut.difference(self.unreach_hint_old_cut)
+                add, removed, touched = self.check_delta_explored(add_edges, cut)
+                explored = self.unreach_hint_old_explored.difference(removed).union(add)
+                for e in removed_flow_cut:
+                    touched.add(e.target)
+                t_final = AND(self.old_t_final, self.compute_unreachable_graph_by_cut_delta( constraint, touched, explored, enabling_cond), constraint)
+                constraint.append([IMPLIES(predicate, t_final, constraint)])
+
+            self.old_t_final = t_final
+            self.old_flow_cut = flow_cut
+            self.unreach_hint_old_cut = cut
+            self.unreach_hint_old_explored = explored
+            return predicate
+        else:
+            explored = self.compute_unreachable_graph(cut)
+            # in case unreachable, the hint is a cut that separates the source from the sink
+            t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
+            # the mono_encoding
+            constraint.append([IMPLIES(predicate, t_final, constraint)])
+            return predicate
 
     def compute_unreachable_graph(self, cut):
         explored = set()
@@ -88,11 +153,31 @@ class Reachability():
         #explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
+            explored.add(head)
             for target, edge in get_node(self.graph, head).incoming.items():
                 if edge not in cut and target not in explored:
                     open.append(target)
-            explored.add(head)
         return explored
+
+    def compute_unreachable_graph_by_cut_delta(self, constraints, touched, explored, enabling_cond):
+        def get_reachable(node):
+            if node == self.src:
+                return TRUE()
+            elif node in explored:
+                return FALSE()
+            else:
+                return TRUE()
+
+        validity_constraints = []
+        for node in touched:
+            obligation = []
+            for target, edge in get_node(self.graph, node).incoming.items():
+                obligation.append(OR(-enabling_cond(edge), -get_reachable(target), constraints))
+
+            validity_constraints.append(
+                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
+
+        return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):
         max_size = len(explored)
@@ -179,3 +264,5 @@ def parse_reach(attributes):
         graph = get_graph(gid)
         Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit = add_lit(int(lit)))
         return True
+
+

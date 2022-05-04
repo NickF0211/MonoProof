@@ -162,7 +162,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == mf.lit:
                     flow_witness = process_flow_witness(mf, sup)
-                    mf.encode_with_hint(flow_witness, True, new_constraints)
+                    mf.encode_with_hint(flow_witness, True, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
                 else:
                     print("hi encoded")
@@ -177,7 +177,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
-                    mf.encode_with_hint(cut, False, new_constraints)
+                    mf.encode_with_hint(cut, False, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
                 else:
                     print("hi encoded")
