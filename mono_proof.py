@@ -68,7 +68,8 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     print("parsing + pre_encoding {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
     write_dimacs(cnf_file, cnf)
-    optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    #optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    optimizied_proof = proof_file
     parsing_time_end = time.time()
     print("theory processing time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
@@ -78,6 +79,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
 
     parsing_time_end = time.time()
     print("theory verification time {}".format(parsing_time_end - start_time))
+    addition_encoder.content += global_inv
     addition_encoder.flush()
     addition_encoder.close()
     rewrite_header(cnf_file, output_encoding, cnf, addition_encoder)

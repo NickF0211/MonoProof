@@ -96,7 +96,7 @@ class Reachability():
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):
         max_size = len(explored)
-        #print(cyclic)
+        #print(max_size)
         if len(cut) == 0:
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond)
         else:
@@ -112,17 +112,17 @@ class Reachability():
                 return FALSE()
             else:
                 return TRUE()
-        validity_constraints = TRUE()
+        validity_constraints = []
+
         for node in explored:
             obligation = []
             for target, edge in get_node(self.graph, node).incoming.items():
                 obligation.append(OR(-enabling_cond(edge), -get_reachable(target), constraints))
 
-            validity_constraints = AND(validity_constraints,
-                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints),
-                                       constraints)
+            validity_constraints.append(
+                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
 
-        return OR(get_reachable(self.sink), NOT(validity_constraints), constraints)
+        return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
 
 

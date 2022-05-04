@@ -101,6 +101,7 @@ def parse_support(support_file):
             else:
                 return hint_map
 
+
 def process_flow_witness(predicate, sup):
     tokens = sup.split()[1:-1]
     assert (len(tokens) %3 == 0)
@@ -135,10 +136,10 @@ def process_cut_witness(predicate, sup):
     bv_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_bv])
     edge_cut = set([get_edge(predicate.graph, f, t) for f, t in pesudo_cut_edge])
 
-    if isinstance(predicate.target_flow, int) and len(bv_cut) > predicate.target_flow:
-        cut = bv_cut.union(edge_cut)
-        bv_cut = predicate.find_cut(cut, bv_cut)
-    #assert len(bv_cut) < predicate.target_flow
+   # if isinstance(predicate.target_flow, int) and len(bv_cut) > predicate.target_flow:
+    #    cut = bv_cut.union(edge_cut)
+    #    bv_cut = predicate.find_cut(cut, Ωafdbv_cut)
+    #asz¸¸¸s¸gfvyuhert len(bv_cut) < predicate.target_flow
     return (bv_cut, edge_cut)
 
 
@@ -162,7 +163,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 if sup not in processed_witness and support_head == mf.lit:
                     flow_witness = process_flow_witness(mf, sup)
                     mf.encode_with_hint(flow_witness, True, new_constraints)
-                    processed_witness.add(sup)
+                    #processed_witness.add(sup)
                 else:
                     print("hi encoded")
             else:
@@ -177,7 +178,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
                     mf.encode_with_hint(cut, False, new_constraints)
-                    processed_witness.add(sup)
+                    #processed_witness.add(sup)
                 else:
                     print("hi encoded")
             else:
@@ -227,12 +228,13 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
         processed = 0
         for lemma_confirmed in reverse_obligation:
             sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content, verified_lemmas)
-            verified_lemmas += sub_proofs
+            #verified_lemmas += sub_proofs
             proofs.append(sub_proofs)
             processed += 1
             print(processed)
             if len(new_constraints.content) > new_constraints.cap:
                 new_constraints.flush()
+                cache_rest()
 
         return proofs
 

@@ -121,8 +121,6 @@ class Maxflow():
             else:
                 sum_cap_bv = add_mono(sum_cap_bv, edge.cap, constraint)
 
-        print(sum_cap)
-        print(self.target_flow)
         sum_cap = add_mono(sum_cap, sum_cap_bv, constraint)
 
         return  LT(sum_cap, self.target_flow, constraint)

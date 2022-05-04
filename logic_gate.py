@@ -3,6 +3,10 @@ from lit import new_lit, global_inv, TRUE, FALSE, l_reset
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
 
+def cache_rest():
+    AND_cached_res_f.clear()
+    AND_cached_res_b.clear()
+
 def reset():
     l_reset()
     AND_cached_res_f.clear()
