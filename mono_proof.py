@@ -20,12 +20,17 @@ def verify_theory(cnf_file, proof_file, obligation_file):
 
     process = subprocess.Popen([drat_path, cnf_file, proof_file, "-p", "-l", temp_file, "-T", obligation_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    process.communicate()
-
+    stdout, _ = process.communicate()
+    assert "s VERIFIED" in stdout
     return temp_file
 
-def launch_monosat(gnf_file, proof_file, support_file, record = None):
-    process = subprocess.Popen([monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"],
+def launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options = None, record = None):
+    arugment_list = [monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"]
+    if extra_cnf is not None:
+        arugment_list.append("-cnf-file={}".format(extra_cnf))
+    if options is not None:
+        arugment_list = arugment_list + options.split()
+    process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     res =  "s UNSATISFIABLE" in stdout
@@ -51,9 +56,13 @@ def verify_full_proof(cnf, proof_file):
         print(stdout)
     return result
 
-def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False, record = None):
+def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False,
+                 extra_cnf = None, record = None):
     start_time = time.time()
     cnf = parse_file(gnf_file)
+    if extra_cnf is not None:
+        extra_cnf = parse_file(extra_cnf)
+        cnf += extra_cnf
     cnf_file = extract_cnf(gnf_file)
     parsing_time_end = time.time()
     print("cnf reading time {}".format(parsing_time_end - start_time))
@@ -68,8 +77,8 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     print("parsing + pre_encoding {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
     write_dimacs(cnf_file, cnf)
-    #optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
-    optimizied_proof = proof_file
+    optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    #optimizied_proof = proof_file
     parsing_time_end = time.time()
     print("theory processing time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
@@ -164,6 +173,28 @@ class Record():
         for i in range(len(self.attribute_names)):
             setattr(self, self.attribute_names[i], tokens[i])
 
+def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
+    assert os.path.exists(support_file)
+    assert os.path.exists(proof_file)
+    start_time = time.time()
+    output_cnf = reextension(gnf, 'cnf', suffix="complete")
+    verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, extra_cnf=extra_cnf, record=record)
+    tick = time.time()
+    solving_time = tick - start_time
+    start_time = tick
+    record.proof_preparing_time = (solving_time)
+    print("proof preparing time: {}".format(solving_time))
+    res = verify_full_proof(output_cnf, proof_file)
+    if res:
+        record.set_verification_result(True)
+        print("Verified")
+    else:
+        record.set_verification_result(False)
+    tick = time.time()
+    solving_time = tick - start_time
+    record.set_proof_verification_time(solving_time)
+    print("proof checking time: {}".format(solving_time))
+    return res
 
 
 def run_and_prove(gnf, record = None):
@@ -174,34 +205,16 @@ def run_and_prove(gnf, record = None):
     assert os.path.exists(gnf)
     proof_file = reextension(gnf, "proof")
     support_file = reextension(gnf, "support")
+    extra_cnf = reextension(gnf, "ecnf")
     print("start solving")
-    unsat = launch_monosat(gnf, proof_file, support_file, record)
+    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf )
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
     record.set_solving_time(solving_time)
     print("solving with certificate time: {}".format(solving_time))
     if unsat:
-        assert os.path.exists(support_file)
-        assert os.path.exists(proof_file)
-        output_cnf = reextension(gnf, 'cnf', suffix="complete")
-        verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=record)
-        tick = time.time()
-        solving_time = tick - start_time
-        start_time = tick
-        record.proof_preparing_time = (solving_time)
-        print("proof preparing time: {}".format(solving_time))
-        res = verify_full_proof(output_cnf, proof_file)
-        if res:
-            record.set_verification_result(True)
-            print("Verified")
-        else:
-            record.set_verification_result(False)
-        tick = time.time()
-        solving_time = tick - start_time
-        record.set_proof_verification_time(solving_time)
-        print("proof checking time: {}".format(solving_time))
-        return res
+        prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
     else:
         print("monosat decided the instance is SAT")
         return False
@@ -217,12 +230,12 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "ti_amk52e04.gnf"
-    proof_file = "ti_amk52e04.proof"
-    support_file = "ti_amk52e04.support"
-    output_cnf = reextension(gnf, 'cnf', suffix="_complete")
+    gnf = "test.gnf"
+    #proof_file = "ti_amk52e04.proof"
+    #support_file = "ti_amk52e04.support"
+    #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
     #parse_support(support_file)
-    verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
+    #verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
     #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/1-nodag-nodiff-trvs-altera_10ax048_780.gnf")
     #run_and_prove("max_flow.gnf")
-    #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/2-nodag-nodiff-trvs-xilinx_flgc2377.gnf")
+    run_and_prove(gnf)

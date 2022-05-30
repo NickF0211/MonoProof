@@ -60,7 +60,7 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
         constraints.append([-predicate_lit, var1])
         constraints.append([-predicate_lit, var2])
     if forward and predicate_lit_f is None:
-        constraints.append([-var1, -var2, predicate_lit])
+        constraints.append([predicate_lit, -var1, -var2])
 
     if forward:
         AND_cached_res_f[(var1, var2)] = predicate_lit

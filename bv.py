@@ -4,8 +4,10 @@ from numpy import zeros
 
 class BV():
     Bvs = {}
-    def __init__(self, width, body, id =None):
+    def __init__(self, width, body, id =None, value=-1):
+
         assert width == 0 or body is None or len(body) == width
+        assert value >= 0 or body is not None
 
         if body is None and width != 0:
             #this is the case for unassigned BV
@@ -13,6 +15,7 @@ class BV():
         else:
             self.assigned = True
 
+        self.value = value
         self.width = width
         self.body = body
         self.parent = None
@@ -25,8 +28,14 @@ class BV():
 
     def assign(self):
         if not self.assigned:
-            self.body = [new_lit() for _ in range(self.width)]
-            self.assigned = True
+            if self.value >= 0:
+                body = N_to_bit_array(self.value)
+                body = [ntob(b) for b in body]
+                assert len(body) <= self.width
+                self.body = [FALSE() for i in range(self.width - len(body))] + body
+            else:
+                self.body = [new_lit() for _ in range(self.width)]
+                self.assigned = True
 
     def get_body(self):
         self.assign()
@@ -81,6 +90,9 @@ def new_unassigned_bv(width):
     assert width > 0
     return BV(width, None)
 
+def const_bv(id, width, value):
+    assert width > 0
+    return BV(width, None, id = id, value = value)
 
 def N_to_bit_array(const, width = -1):
     inter = bin(const)[2:]
@@ -519,7 +531,7 @@ class Comparsion_const():
             return self.lit
         else:
             result_p = self.op(self.bv1, self.const, constraints)
-            constraints.append([IFF(self.lit, result_p)])
+            constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
             return self.lit
 
@@ -563,9 +575,17 @@ def add_Add(result, bv1, bv2):
     return ADD(result, bv1, bv2)
 
 def parse_const_comparsion(attributes):
-    assert (len(attributes) == 4)
-    op, lit, bv, const = attributes
-    add_compare_const(int(bv), int(const), op, add_lit(int(lit)))
+    head = attributes[0]
+    if head in [">=", "<=", ">", "<"]:
+        assert (len(attributes) == 4)
+        op, lit, bv, const = attributes
+        add_compare_const(int(bv), int(const), op, add_lit(int(lit)))
+    else:
+        #add a const bv
+        assert len(attributes) == 3
+        bv_id, bv_width, bv_value = attributes
+        const_bv(int(bv_id), int(bv_width), int(bv_value))
+
     return True
 
 def parse_comparsion(attributes):

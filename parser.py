@@ -1,11 +1,12 @@
 from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
+from distance import parse_distance, Distance_LEQ
 from max_flow import parse_maxflow
 from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv, GE
 from lit import add_lit, write_dimacs, global_inv
 import os
 from predicate import encode_all, pre_encode
-from solver import is_sat, get_model, get_proof
+from solver import is_sat, get_model, get_proof, get_blocked_proof
 from bv import BV
 from max_flow import *
 
@@ -73,6 +74,8 @@ def parse_line(line, cnfs):
             return parse_edge_bv(line_token[1:])
         elif header == "reach":
             return parse_reach(line_token[1:])
+        elif header.startswith("distance_"):
+            return parse_distance(line_token)
         elif header.startswith("maximum_flow"):
             return parse_maxflow(line_token)
         elif header == "p":
@@ -83,6 +86,8 @@ def parse_line(line, cnfs):
             return True
         elif header == "digraph":
             return parse_graph(line_token[1:])
+        elif header == "pb":
+            return True
         else:
             assert False
 
@@ -143,9 +148,15 @@ def process_cut_witness(predicate, sup):
     return (bv_cut, edge_cut)
 
 
+def check_pure_cut(cuts):
+    for e in cuts:
+        if isinstance(e.cap, BV):
+            return False
+    return True
 
+large_graph_edge_thresh_hold = 10
 
-def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None):
+def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False):
     #now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -153,8 +164,8 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
     lemmas.sort()
     sup = support.get(' '.join([str(i) for i in lemmas]), None)
     processed_witness = set()
+    is_drup = True
     for l in lemmas:
-        to_be_enocoded = []
         mf = Maxflow.Collection.get(l, None)
 
         if mf is not None:
@@ -164,6 +175,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     flow_witness = process_flow_witness(mf, sup)
                     mf.encode_with_hint(flow_witness, True, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
+                    is_drup = False
                 else:
                     print("hi encoded")
             else:
@@ -179,6 +191,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     cut = process_cut_witness(mf, sup)
                     mf.encode_with_hint(cut, False, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
+                    is_drup = check_pure_cut(cut[0])
                 else:
                     print("hi encoded")
             else:
@@ -186,15 +199,38 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
-            to_be_enocoded.append((reach, True))
+            if len(reach.graph.edges) > large_graph_edge_thresh_hold:
+                reach.encode(new_constraints)
+            else:
+                reach.encode(new_constraints)
 
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
-            to_be_enocoded.append((reach, False))
+            if len(reach.graph.edges) > large_graph_edge_thresh_hold:
+                reach.encode(new_constraints)
+            else:
+                reach.encode(new_constraints)
 
-    proof = [orig_lemma]
-    #proof = get_proof(constraints + global_inv + verified_lemmas + new_constraints, orig_lemma, True)
-    return proof
+        distance = Distance_LEQ.Collection.get(l, None)
+        if distance is not None:
+            distance.encode(new_constraints)
+            is_drup = False
+
+        distance = Distance_LEQ.Collection.get(-l, None)
+        if distance is not None:
+            distance.encode(new_constraints)
+            is_drup = False
+
+    if block_process:
+        return [orig_lemma], is_drup
+
+    else:
+        if is_drup:
+            proof = [orig_lemma], True
+        else:
+            proof = get_proof(constraints + global_inv + verified_lemmas + new_constraints, orig_lemma, True), True
+
+        return proof
 
 
 
@@ -226,12 +262,32 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 
         reverse_obligation = obligations[::-1]
         processed = 0
+        block_process = True
+        buffer =[]
         for lemma_confirmed in reverse_obligation:
-            sub_proofs = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content, verified_lemmas)
-            #verified_lemmas += sub_proofs
-            proofs.append(sub_proofs)
-            processed += 1
-            print(processed)
+            if not block_process:
+                sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content, verified_lemmas, block_process=False)
+                #verified_lemmas += sub_proofs
+                proofs.append(sub_proofs)
+                processed += 1
+                print(processed)
+            else:
+                
+                sub_proofs, is_drup = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
+                                                  verified_lemmas, block_process=True)
+                if is_drup:
+                    proofs.append(sub_proofs)
+                    processed += 1
+                    print(processed)
+                else:
+                    buffer += sub_proofs
+                    if (len(buffer) > 100 or lemma_confirmed == reverse_obligation[-1]):
+                        sub_proofs = get_blocked_proof(constraints + global_inv + new_constraints.content, buffer, optimize=True)
+                        proofs.append(sub_proofs)
+                        processed += len(buffer)
+                        buffer.clear()
+                        print(processed)
+
             if len(new_constraints.content) > new_constraints.cap:
                 new_constraints.flush()
                 cache_rest()

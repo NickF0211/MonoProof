@@ -1,5 +1,5 @@
 from pysat.solvers import Cadical, Lingeling
-from logic_gate import OR, g_OR
+from logic_gate import OR, g_OR, g_AND
 from lit import write_proofs, write_dimacs
 import subprocess
 import os
@@ -21,6 +21,30 @@ def get_model(cnfs):
 
 def is_rat(cnfs):
     return get_proof(cnfs, optimize=True) == ['0']
+
+def get_blocked_proof(cnfs, block_assumptions, optimize=False, useProver=False):
+    additional_clause = []
+    assumption_lits  = [g_OR(ass, additional_clause, forward=False) for ass in block_assumptions]
+    top_level_assumption = g_AND(assumption_lits, additional_clause, forward=False)
+    final_collection = cnfs + additional_clause + [[-top_level_assumption]]
+
+    # try prover first
+    if useProver:
+        p = Prover(get_lits_num(), final_collection)
+        if not p.propgate():
+            return block_assumptions
+
+    with Lingeling(bootstrap_with=final_collection, with_proof=True) as solver:
+        if solver.solve():
+            print("assumption invalid")
+            assert False
+        else:
+            proofs = solver.get_proof()
+            if optimize:
+                proofs = optimize_proof(final_collection, proofs)
+
+            return additional_clause + _proof_block_cleanup(proofs, top_level_assumption, block_assumptions)
+
 
 def get_proof(cnfs, assumptions = None, optimize = False, useProver=False):
     additional_clause = []
@@ -58,7 +82,14 @@ def get_proof(cnfs, assumptions = None, optimize = False, useProver=False):
             else:
                 return _proof_cleanup(proofs, assumption_lit, assumptions)
 
-
+def _proof_block_cleanup(proof, assumption_lit, assumption_block):
+    proof.pop(-1)
+    if len(proof) == 0:
+        return assumption_block
+    else:
+        format_proof = [[int(l) for l in lemma.split()[:-1]] for lemma in proof if not lemma.startswith("d")]
+        step1 =  [[assumption_lit] + lemma for lemma in format_proof]  + assumption_block
+        return step1
 
 def _proof_cleanup(proof, assumption_lit, assumptions):
     proof.pop(-1)

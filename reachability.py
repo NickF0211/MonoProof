@@ -4,6 +4,13 @@ from graph import *
 def _default_enabling_condition(edge):
     return edge.lit
 
+
+def on_cut(edge, cut, is_edge_lit):
+    if is_edge_lit:
+        return edge.lit in cut
+    else:
+        return edge in cut
+
 class Reachability():
     Collection = {}
 
@@ -155,6 +162,12 @@ class Reachability():
     def compute_unreachable_graph(self, cut):
         explored = set()
         open = [self.sink]
+
+        is_edge_lit = False
+        for e in cut:
+            is_edge_lit = isinstance(e, int)
+            break
+
         #explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
@@ -163,7 +176,7 @@ class Reachability():
             else:
                 explored.add(head)
                 for target, edge in get_node(self.graph, head).incoming.items():
-                    if edge not in cut and target not in explored:
+                    if not on_cut(edge, cut, is_edge_lit) and target not in explored:
                         open.append(target)
         return explored
 
@@ -172,6 +185,11 @@ class Reachability():
         touched = set()
         open = [self.sink]
         # explored.add(self.sink)
+        is_edge_lit = False
+        for e in cut:
+            is_edge_lit = isinstance(e, int)
+            break
+
         while len(open) != 0:
             head = open.pop()
             if head in explored:
@@ -181,7 +199,7 @@ class Reachability():
                 if head not in self.unreach_hint_old_explored:
                     touched.add(head)
                 for target, edge in get_node(self.graph, head).incoming.items():
-                    if edge not in cut and target not in explored:
+                    if not on_cut(edge, cut, is_edge_lit) and target not in explored:
                         open.append(target)
                         if edge in self.unreach_hint_old_cut:
                             touched.add(head)

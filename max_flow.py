@@ -69,7 +69,6 @@ class Maxflow():
 
     def encode_with_hint(self, hint, satisifed, constraint, dynamic= False):
         predicate = self.lit
-
         if satisifed:
             #in case of max-flow is satisfied, the hint is a dict that maps flows in each edge
             #the verification encoding checks:
