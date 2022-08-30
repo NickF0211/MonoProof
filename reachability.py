@@ -11,6 +11,15 @@ def on_cut(edge, cut, is_edge_lit):
     else:
         return edge in cut
 
+
+def update_max_distance(max_distance, node, cur_dis):
+    max_dis = max_distance.get(node, 0)
+    if cur_dis > max_dis:
+        max_distance[node] = cur_dis
+
+def get_max_distance(max_distance, node):
+    return max_distance.get(node, 0)
+
 class Reachability():
     Collection = {}
 
@@ -231,7 +240,8 @@ class Reachability():
         max_size = len(explored)
         #print(max_size)
         if len(cut) == 0:
-            return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond)
+            max_distance = dict()
+            return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond, max_distance)
         else:
             #use the information in the cut to perform the witness encoding
             return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond)
@@ -277,22 +287,25 @@ class Reachability():
         return False
 
 
-    def _DSF(self, node, depth, cut, constraint, cache, enabling_cond):
+
+    def _DSF(self, node, depth, cut, constraint, cache, enabling_cond, max_distance):
         res = cache.get((node, depth), None)
         if res is not None:
+            update_max_distance(max_distance, node, depth)
             return res
         else:
+            cur_distance = get_max_distance(max_distance, node)
             if node == self.src:
                 return TRUE()
             else:
                 if depth == 0:
                     return FALSE()
-                for d in range(1, depth+1):
+                for d in range(cur_distance+1, depth+1):
                     obligation = []
                     if cache.get((node, d), None) is None:
                         for target, edge in get_node(self.graph, node).incoming.items():
                             if edge not in cut:
-                                t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond)
+                                t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond, max_distance)
                             else:
                                 t_depth_var = TRUE()
 

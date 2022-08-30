@@ -1,4 +1,4 @@
-from lit import new_lit, global_inv, TRUE, FALSE, l_reset
+from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality
 
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
@@ -101,4 +101,9 @@ def XOR(var1, var2, constraints=global_inv):
 
 def ITE(C, var1, var2, constraints=global_inv):
     return AND(IMPLIES(C, var1, constraints), IMPLIES(-C, var2, constraints), constraints)
+
+def process_delayed_equality(constraints):
+    for v1, v2 in Delayed_Equality:
+        constraints.append([IFF(v1, v2, constraints)])
+    Delayed_Equality.clear()
 

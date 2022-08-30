@@ -9,11 +9,10 @@ import graph
 import bv
 import predicate
 import logic_gate
-import lit
 sys.setrecursionlimit(10000)
 
-monosat_path =  "/Users/nickfeng/monosat/monosat"
-drat_trim_orig_path = '/Users/nickfeng/mono_encoding/drat-trim-orig'
+monosat_path =  "/home/nicfeng/workspace/monosat_public/monosat/monosat"
+drat_trim_orig_path = '/home/nicfeng/workspace/mono_encoding/drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
@@ -68,6 +67,8 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     print("cnf reading time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
     scan_proof(proof_file, record)
+    # now we can process delayed equality
+    logic_gate.process_delayed_equality(cnf)
     parsing_time_end = time.time()
     print("proof reading time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
@@ -177,7 +178,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
     assert os.path.exists(support_file)
     assert os.path.exists(proof_file)
     start_time = time.time()
-    output_cnf = reextension(gnf, 'cnf', suffix="complete")
+    output_cnf = reextension(gnf, 'extcnf', suffix="complete")
     verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, extra_cnf=extra_cnf, record=record)
     tick = time.time()
     solving_time = tick - start_time
@@ -214,10 +215,10 @@ def run_and_prove(gnf, record = None):
     record.set_solving_time(solving_time)
     print("solving with certificate time: {}".format(solving_time))
     if unsat:
-        prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
+        return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
     else:
         print("monosat decided the instance is SAT")
-        return False
+        return True
 
 def reset():
     graph.reset()
@@ -230,7 +231,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "test.gnf"
+    gnf = "test"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")

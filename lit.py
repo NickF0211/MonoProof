@@ -3,7 +3,7 @@ lits = 0
 true_lit = 0
 false_lit = 0
 global_inv = []
-
+Delayed_Equality = []
 stack = []
 
 def push(target):

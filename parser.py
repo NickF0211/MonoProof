@@ -23,7 +23,8 @@ def parse_file(file_name):
             line = file.readline()
             if line:
                 if not parse_line(line , cnfs):
-                    return False
+                    assert False
+
             else:
                 return cnfs
 
@@ -58,13 +59,17 @@ def parse_line(line, cnfs):
             return parse_edge(line_token[1:])
         elif header == "bv":
             sub_header = line_token[1]
+            if sub_header == "symbol":
+                return True
+            if sub_header == "lazy":
+                return parse_bv(line_token[2:])
             if sub_header.isdigit():
                 return parse_bv(line_token[1:])
             elif sub_header == "+":
                 return parse_addition(line_token[2:])
             elif sub_header == "const":
                 return parse_const_comparsion(line_token[2:])
-            elif sub_header in [">=", "<=", ">", "<"]:
+            elif sub_header in [">=", "<=", ">", "<", "==", "!="]:
                 return parse_comparsion(line_token[1:])
             else:
                 return False
@@ -87,6 +92,10 @@ def parse_line(line, cnfs):
         elif header == "digraph":
             return parse_graph(line_token[1:])
         elif header == "pb":
+            return True
+        elif header == "symbol":
+            return True
+        elif header == "amo":
             return True
         else:
             assert False
@@ -200,14 +209,16 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
-                reach.encode(new_constraints)
+                reach.encode_with_hint(orig_lemma[1:], False, constraints)
+                #reach.encode(new_constraints)
             else:
                 reach.encode(new_constraints)
 
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
-                reach.encode(new_constraints)
+                reach.encode_with_hint(orig_lemma[1:], False, constraints)
+                #reach.encode(new_constraints)
             else:
                 reach.encode(new_constraints)
 

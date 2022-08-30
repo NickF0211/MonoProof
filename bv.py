@@ -1,6 +1,5 @@
 from lit import *
 from logic_gate import *
-from numpy import zeros
 
 class BV():
     Bvs = {}
@@ -426,6 +425,9 @@ def Equal(bv1, bv2, constraints=global_inv):
         width = bv1.width
         return g_AND([IFF(bv1.get_var(i), bv2.get_var(i), constraints)  for i in range(width)], constraints)
 
+def NEqual(bv1, bv2, constraints = global_inv):
+    return NOT(Equal(bv1, bv2, constraints))
+
 def Equal_const(bv1, const, constraints=global_inv):
     if isinstance(bv1, int):
         if bv1 == const :
@@ -436,6 +438,10 @@ def Equal_const(bv1, const, constraints=global_inv):
         const_bv = N_to_bit_array(const, bv1.width)
         width = bv1.width
         return g_AND([IFF(bv1.get_var(i), ntob(const_bv[i]), constraints)   for i in range(width)], constraints)
+
+def NEQ_const(bv1, const, constraint = global_inv):
+    return NOT(Equal_const(bv1, const, constraint))
+
 
 class Comparsion():
     Collection = {}
@@ -451,6 +457,10 @@ class Comparsion():
             self.op = LE
         elif op == "<":
             self.op = LT
+        elif op == "==":
+            self.op = Equal
+        elif op == "!=":
+            self.op = NEqual
         else:
             print("unsupported comparsion")
             assert (False)
@@ -483,7 +493,7 @@ def add_compare(bv1, bv2, op, lit, constraints = global_inv):
         return compare
     else:
         if compare.lit != lit:
-            constraints.append([IFF(compare.lit, lit)])
+            Delayed_Equality.append((compare.lit, lit))
         return compare
 
 def add_compare_const(bv1, const, op, lit):
@@ -515,6 +525,10 @@ class Comparsion_const():
             self.op = LE_const
         elif op == "<":
             self.op = LT_const
+        elif op == "==":
+            self.op = Equal_const
+        elif op == "!=":
+            self.op = NEQ_const
         else:
             print("unsupported comparsion")
             assert (False)
@@ -576,7 +590,7 @@ def add_Add(result, bv1, bv2):
 
 def parse_const_comparsion(attributes):
     head = attributes[0]
-    if head in [">=", "<=", ">", "<"]:
+    if head in [">=", "<=", ">", "<", "==", "!="]:
         assert (len(attributes) == 4)
         op, lit, bv, const = attributes
         add_compare_const(int(bv), int(const), op, add_lit(int(lit)))
