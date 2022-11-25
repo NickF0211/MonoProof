@@ -21,9 +21,9 @@ def parse_file(file_name):
     with open(file_name, 'r') as file:
         cnfs = []
         while True:
-            line = file.readline().strip().rstrip()
+            line = file.readline()
             if line:
-                if not parse_line(line , cnfs):
+                if not parse_line(line, cnfs):
                     assert False
             else:
                 return cnfs
@@ -46,6 +46,10 @@ def parse_header(attributes):
 
 ignore_list = ["solve", "node"]
 def parse_line(line, cnfs):
+    line = line.split()
+    if not line:
+        # if there are formatting issue  with the line, skip
+        return True
     line_token = line.split()
     if line_token == []:
         return False
