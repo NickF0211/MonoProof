@@ -11,8 +11,8 @@ import predicate
 import logic_gate
 sys.setrecursionlimit(10000)
 
-monosat_path =  "/home/nicfeng/workspace/monosat_public/monosat/monosat"
-drat_trim_orig_path = '/home/nicfeng/workspace/mono_encoding/drat-trim-orig'
+monosat_path =  "/home/fengnick/monosat/monosat"
+drat_trim_orig_path = './drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
@@ -28,7 +28,10 @@ def launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options
     if extra_cnf is not None:
         arugment_list.append("-cnf-file={}".format(extra_cnf))
     if options is not None:
-        arugment_list = arugment_list + options.split()
+        if isinstance(options, str):
+            arugment_list = arugment_list + options.split()
+        elif isinstance(options, type([])):
+            arugment_list += options
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -198,7 +201,8 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
     return res
 
 
-def run_and_prove(gnf, record = None):
+def run_and_prove(gnf, record = None, monosat_option=None):
+    reset()
     if record is None:
         record = Record(gnf)
 
@@ -208,7 +212,7 @@ def run_and_prove(gnf, record = None):
     support_file = reextension(gnf, "support")
     extra_cnf = reextension(gnf, "ecnf")
     print("start solving")
-    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf )
+    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options = monosat_option )
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
@@ -218,7 +222,7 @@ def run_and_prove(gnf, record = None):
         return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
     else:
         print("monosat decided the instance is SAT")
-        return True
+        return False
 
 def reset():
     graph.reset()

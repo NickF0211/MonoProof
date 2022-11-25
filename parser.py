@@ -20,11 +20,10 @@ def parse_file(file_name):
     with open(file_name, 'r') as file:
         cnfs = []
         while True:
-            line = file.readline()
+            line = file.readline().strip().rstrip()
             if line:
                 if not parse_line(line , cnfs):
                     assert False
-
             else:
                 return cnfs
 

@@ -1,5 +1,5 @@
 import glob
-from mono_proof import launch_monosat
+from mono_proof import launch_monosat, run_and_prove
 from parser import reextension
 
 instances = glob.glob("gnfs/*.gnf")
@@ -20,7 +20,10 @@ for instance in instances:
                 with open(new_file_name, 'w') as new_file:
                     new_value_column = others + [str(current_value)]
                     new_file.write(pre_content + '\n' + ' '.join(new_value_column) + '\n' + post_content )
-                    if launch_monosat(new_file_name, proof_file, support_file):
+                    if run_and_prove(new_file_name, monosat_option=["-no-check-solution", "-verb=1", "-theory-order-vsids",
+                                "-vsids-both", "-decide-theories", "-no-decide-graph-rnd",
+                                "-lazy-maxflow-decisions", "-conflict-min-cut",
+                                "-conflict-min-cut-maxflow", "-adaptive-history-clear=5"]):
                         print("find UNSAT instances with flow {}".format(current_value))
                         break
                     else:
