@@ -9,10 +9,11 @@ import graph
 import bv
 import predicate
 import logic_gate
+import lit
 sys.setrecursionlimit(10000)
 
-monosat_path =  "/home/nicfeng/workspace/monosat_public/monosat/monosat"
-drat_trim_orig_path = '/home/nicfeng/workspace/mono_encoding/drat-trim-orig'
+monosat_path =  "/Users/nickfeng/monosat/monosat"
+drat_trim_orig_path = '/Users/nickfeng/mono_encoding/drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
@@ -198,7 +199,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
     return res
 
 
-def run_and_prove(gnf, record = None):
+def run_and_prove(gnf, record = None, running_opt=None):
     if record is None:
         record = Record(gnf)
 
@@ -208,7 +209,7 @@ def run_and_prove(gnf, record = None):
     support_file = reextension(gnf, "support")
     extra_cnf = reextension(gnf, "ecnf")
     print("start solving")
-    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf )
+    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options=running_opt)
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
@@ -218,7 +219,7 @@ def run_and_prove(gnf, record = None):
         return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
     else:
         print("monosat decided the instance is SAT")
-        return True
+        return False
 
 def reset():
     graph.reset()
@@ -231,7 +232,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "test"
+    gnf = "test.gnf"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
