@@ -6,7 +6,9 @@ import os
 from uuid import uuid4
 from prover import Prover
 from lit import get_lits_num
+
 drat_path = "./drat-trim"
+
 
 def is_sat(cnfs):
     solver = Cadical(bootstrap_with=cnfs)

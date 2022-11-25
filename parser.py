@@ -1,6 +1,7 @@
 from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
 from reachability import parse_reach
 from distance import parse_distance, Distance_LEQ
+from acyclic import parse_acyclic, Acyclic
 from max_flow import parse_maxflow
 from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsion, get_bv, GE
 from lit import add_lit, write_dimacs, global_inv
@@ -92,10 +93,8 @@ def parse_line(line, cnfs):
             return parse_graph(line_token[1:])
         elif header == "pb":
             return True
-        elif header == "symbol":
-            return True
-        elif header == "amo":
-            return True
+        elif header == "acyclic":
+            return parse_acyclic(line_token[1:])
         else:
             assert False
 
@@ -105,14 +104,29 @@ def parse_support(support_file):
         while True:
             line = file.readline()
             if line:
-                tokens = line.split("MF witness")
-                assert(len(tokens) == 2)
-                value, key = tokens
-                key = [int(l) for l in key.split()]
-                key.sort()
-                hint_map[' '.join([str(l) for l in key])] = value
+                if "MF witness" in line:
+                    tokens = line.split("MF witness")
+                    assert(len(tokens) == 2)
+                    value, key = tokens
+                    key = [int(l) for l in key.split()]
+                    key.sort()
+                    hint_map[' '.join([str(l) for l in key])] = value
+                elif "AC witness" in line:
+                    tokens = line.split("AC witness")
+                    assert (len(tokens) == 2)
+                    value, key = tokens
+                    key = [int(l) for l in key.split()]
+                    key.sort()
+                    hint_map[' '.join([str(l) for l in key])] = value
+                else:
+                    continue
             else:
                 return hint_map
+
+def process_cyclic_witness(predicate, sup):
+    tokens = sup.split()[:-2]
+    nods = [get_node(predicate.graph, int(i)) for i in tokens]
+    return nods
 
 
 def process_flow_witness(predicate, sup):
@@ -174,6 +188,24 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
     processed_witness = set()
     is_drup = True
     for l in lemmas:
+        ac = Acyclic.Collection.get(l, None)
+        if ac is not None:
+            ac.encode_acyclic_clause(constraints)
+            assert False
+
+        ac = Acyclic.Collection.get(-l, None)
+        if ac is not None:
+            if sup is not None:
+                support_head = int(sup.split()[-2])
+                if sup not in processed_witness and support_head == -ac.lit:
+                    ac_witness = process_cyclic_witness(ac, sup)
+                    ac.encode_cyclic_clause(ac_witness, new_constraints)
+                else:
+                    print("encoded")
+            else:
+                print("we need the support for Cyclic clause")
+                assert False
+
         mf = Maxflow.Collection.get(l, None)
 
         if mf is not None:

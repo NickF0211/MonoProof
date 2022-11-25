@@ -9,10 +9,12 @@ import graph
 import bv
 import predicate
 import logic_gate
+import lit
 sys.setrecursionlimit(10000)
 
 monosat_path =  "/home/fengnick/monosat/monosat"
 drat_trim_orig_path = './drat-trim-orig'
+
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
@@ -201,7 +203,8 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
     return res
 
 
-def run_and_prove(gnf, record = None, monosat_option=None):
+
+def run_and_prove(gnf, record = None, running_opt=None):
     reset()
     if record is None:
         record = Record(gnf)
@@ -212,7 +215,7 @@ def run_and_prove(gnf, record = None, monosat_option=None):
     support_file = reextension(gnf, "support")
     extra_cnf = reextension(gnf, "ecnf")
     print("start solving")
-    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options = monosat_option )
+    unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options=running_opt)
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
@@ -235,7 +238,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "test"
+    gnf = "test.gnf"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
