@@ -18,14 +18,15 @@ drat_trim_orig_path = './drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
-
+    print([cnf_file, proof_file, "-p", "-l", temp_file, "-T", obligation_file])
     process = subprocess.Popen([drat_path, cnf_file, proof_file, "-p", "-l", temp_file, "-T", obligation_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
+    print(stdout)
     assert "s VERIFIED" in stdout
     return temp_file
 
-def launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options = None, record = None):
+def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options = None, record = None):
     arugment_list = [monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"]
     if extra_cnf is not None:
         arugment_list.append("-cnf-file={}".format(extra_cnf))
@@ -61,7 +62,7 @@ def verify_full_proof(cnf, proof_file):
     return result
 
 def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False,
-                 extra_cnf = None, record = None):
+                 extra_cnf = None, record = None, witness_reduction = True):
     start_time = time.time()
     cnf = parse_file(gnf_file)
     if extra_cnf is not None:
@@ -90,7 +91,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     start_time = parsing_time_end
     hint_map = parse_support(support_file)
     addition_encoder = CNFWriter(cnf_file)
-    proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record)
+    proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record, witness_reduction = witness_reduction)
 
     parsing_time_end = time.time()
     print("theory verification time {}".format(parsing_time_end - start_time))
@@ -114,8 +115,6 @@ def load_record(record_string):
     return new_record
 
 class Record():
-
-
     def __init__(self, name):
         self.name = name
         self.solving_result = "unknown"
@@ -179,12 +178,13 @@ class Record():
         for i in range(len(self.attribute_names)):
             setattr(self, self.attribute_names[i], tokens[i])
 
-def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
+def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witness_reduction = True):
     assert os.path.exists(support_file)
     assert os.path.exists(proof_file)
     start_time = time.time()
     output_cnf = reextension(gnf, 'extcnf', suffix="complete")
-    verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, extra_cnf=extra_cnf, record=record)
+    verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, extra_cnf=extra_cnf, record=record,
+                 witness_reduction=witness_reduction)
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
@@ -204,7 +204,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None):
 
 
 
-def run_and_prove(gnf, record = None, running_opt=None):
+def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True):
     reset()
     if record is None:
         record = Record(gnf)
@@ -222,7 +222,7 @@ def run_and_prove(gnf, record = None, running_opt=None):
     record.set_solving_time(solving_time)
     print("solving with certificate time: {}".format(solving_time))
     if unsat:
-        return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf)
+        return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf, witness_reduction = witness_reduction)
     else:
         print("monosat decided the instance is SAT")
         return False

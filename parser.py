@@ -46,8 +46,7 @@ def parse_header(attributes):
 
 ignore_list = ["solve", "node"]
 def parse_line(line, cnfs):
-    line = line.split()
-    if not line:
+    if not line.strip():
         # if there are formatting issue  with the line, skip
         return True
     line_token = line.split()
@@ -182,7 +181,7 @@ def check_pure_cut(cuts):
 
 large_graph_edge_thresh_hold = 10
 
-def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False):
+def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
     #now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -213,7 +212,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         mf = Maxflow.Collection.get(l, None)
 
         if mf is not None:
-            if sup is not None:
+            if sup is not None and witness_reduction:
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == mf.lit:
                     flow_witness = process_flow_witness(mf, sup)
@@ -224,12 +223,13 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     print("hi encoded")
             else:
                 mf.encode(new_constraints)
+                is_drup = False
 
 
         mf = Maxflow.Collection.get(-l, None)
 
         if mf is not None:
-            if sup is not None:
+            if sup is not None and witness_reduction:
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
@@ -240,6 +240,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     print("hi encoded")
             else:
                 mf.encode(new_constraints)
+                is_drup = False
 
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
@@ -281,7 +282,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
 
 
-def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None):
+def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction = True):
     verified_lemmas = []
     proofs = []
     #the proof obligation need to be proved backwards
@@ -312,7 +313,8 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
         buffer =[]
         for lemma_confirmed in reverse_obligation:
             if not block_process:
-                sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content, verified_lemmas, block_process=False)
+                sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
+                                                     verified_lemmas, block_process=False, witness_reduction=witness_reduction)
                 #verified_lemmas += sub_proofs
                 proofs.append(sub_proofs)
                 processed += 1
@@ -320,7 +322,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
             else:
                 
                 sub_proofs, is_drup = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
-                                                  verified_lemmas, block_process=True)
+                                                  verified_lemmas, block_process=True, witness_reduction=witness_reduction)
                 if is_drup:
                     proofs.append(sub_proofs)
                     processed += 1
@@ -383,10 +385,11 @@ def reextension(source, new_ext, suffix=''):
     return pre+suffix+'.'+new_ext
 
 
-def extract_cnf(source):
+def extract_cnf(source, cnfs = None):
     target = reextension(source, "cnf")
-    cnfs = parse_file(source)
-    write_dimacs(target, cnfs)
+    # if not cnfs:
+    #     cnfs = parse_file(source)
+    # write_dimacs(target, cnfs)
     return target
 
 
