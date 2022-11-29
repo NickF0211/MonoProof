@@ -216,6 +216,8 @@ def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     return bv3
 
 def bv_and(bv1, bit, constraints):
+    if isinstance(bv1, int):
+        bv1 = const_to_bv(bv1)
     return BV(bv1.width, [AND(bv1.get_var(id), bit, constraints) for id in range(bv1.width)])
 
 
