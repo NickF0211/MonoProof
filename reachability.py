@@ -68,7 +68,7 @@ class Reachability():
             for target, edge in get_node(self.graph, node).outgoing.items():
                 flow = flow_assignment.get(edge, 0)
                 rflow = minus_mono(edge.cap, flow, constraints)
-                obligation.append(OR(-GT(rflow, 0), -get_reachable(target), constraints))
+                obligation.append(OR(Equal_const(rflow, 0), -get_reachable(target), constraints))
 
             validity_constraints.append(
                                        IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
