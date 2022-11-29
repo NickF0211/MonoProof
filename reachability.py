@@ -44,7 +44,7 @@ class Reachability():
 
         Reachability.Collection[lit] = self
 
-    def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True):
+    def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True, force_witness = False):
         if enabling_cond in self.encoded:
             return self.lit
 
@@ -52,7 +52,7 @@ class Reachability():
         if reach_cond:
             self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
         if unreach_cond:
-            self.unreachability_constraint(set(), constraints, self.lit, enabling_cond)
+            self.unreachability_constraint(set(), constraints, self.lit, enabling_cond, force_witness=force_witness)
 
         self.encoded.add(enabling_cond)
         return self.lit
@@ -140,7 +140,7 @@ class Reachability():
         return new_explored, removed, touched
 
 
-    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond = _default_enabling_condition, dynamic = False, flow_cut = None):
+    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond = _default_enabling_condition, dynamic = False, flow_cut = None, force_witness = False):
         # each node contains two boolean variable, init, and final. init is true for the src,
         # final takes about weather the node will eventually be reachable from the source
         if dynamic:
@@ -166,7 +166,7 @@ class Reachability():
         else:
             explored = self.compute_unreachable_graph(cut)
             # in case unreachable, the hint is a cut that separates the source from the sink
-            t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
+            t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond, force_witness=force_witness)
             # the mono_encoding
             constraint.append([IMPLIES(predicate, t_final, constraint)])
             return predicate
@@ -239,10 +239,10 @@ class Reachability():
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
-    def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond):
+    def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond, force_witness=False):
         max_size = len(explored)
         #print(max_size)
-        if len(cut) == 0:
+        if len(cut) == 0 and not force_witness:
             max_distance = dict()
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond, max_distance)
         else:
