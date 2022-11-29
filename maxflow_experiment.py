@@ -10,7 +10,7 @@ with open("max_flow.csv", 'w') as outfile:
         res = run_and_prove(instance, record, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
                                                               "-vsids-both", "-decide-theories", "-no-decide-graph-rnd",
                                                               "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                              "-conflict-min-cut-maxflow", "-adaptive-history-clear=5"])
+                                                              "-conflict-min-cut-maxflow", "-adaptive-history-clear=5"], witness_reduction=True)
         outfile.write(str(record) + '\n')
 
 
