@@ -44,15 +44,18 @@ class Reachability():
 
         Reachability.Collection[lit] = self
 
-    def encode(self, constraints, enabling_cond = _default_enabling_condition):
+    def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True):
         if enabling_cond in self.encoded:
             return self.lit
+
         self.reachable[self.src] = TRUE()
-        self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
-        self.unreachability_constraint(set(), constraints, self.lit, enabling_cond)
+        if reach_cond:
+            self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
+        if unreach_cond:
+            self.unreachability_constraint(set(), constraints, self.lit, enabling_cond)
+
         self.encoded.add(enabling_cond)
         return self.lit
-
 
     def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition, dynamic= False, flow_cut=None):
         self.reachable[self.src] = TRUE()

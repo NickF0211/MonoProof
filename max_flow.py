@@ -56,7 +56,7 @@ class Maxflow():
         def _cut_assignment(edge):
             return AND(edge.lit, -cuts[edge], constraint)
 
-        reachability = rch.encode(constraint, enabling_cond=_cut_assignment)
+        reachability = rch.encode(constraint, enabling_cond=_cut_assignment, reach_cond=False, unreach_cond=True)
         # cond 2: the sum of cut's cap must be less than the target flow
         cond2 = self.check_cut_constraint_unhint(cuts,constraint)
         #print(cond2)

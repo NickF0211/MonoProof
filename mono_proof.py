@@ -12,7 +12,7 @@ import logic_gate
 import lit
 sys.setrecursionlimit(10000)
 
-monosat_path =  "/home/fengnick/monosat/monosat"
+monosat_path =  "/Users/nickfeng/monosat/monosat"
 drat_trim_orig_path = './drat-trim-orig'
 
 
@@ -43,7 +43,7 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
     if record is not None:
         if res:
             record.set_solving_result("UNSAT")
-        elif "s UNSATISFIABLE" in stdout:
+        elif "s SATISFIABLE" in stdout:
             record.set_solving_result("SAT")
         else:
             record.set_solving_result("Unknown/Error")
