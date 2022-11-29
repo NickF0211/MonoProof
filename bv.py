@@ -243,7 +243,7 @@ def minus_mono(bv1, bv2, constraint):
     if bv2.width < bv1.width + 1:
         bv2 = bv2.extend(bv1.width - 1 - bv2.width)
 
-    bv3 = new_bv(bv2.width - 1)
+    bv3 = new_bv(bv1.width - 1)
     bv1 = add_lower(bv3, bv2, constraint, bv1)
     add_upper(bv2, bv3, constraint, bv1)
     return bv3
@@ -262,7 +262,7 @@ def minus(bv1, bv2, constraint, bv3):
     if bv2.width < bv1.width + 1:
         bv2 = bv2.extend(bv1.width - 1 - bv2.width)
 
-    bv3 = new_bv(bv2.width - 1)
+    bv3 = new_bv(bv1.width - 1)
     new_bv1 = add(bv3, bv2, constraint)
     return Equal(bv1, new_bv1, constraint)
 
