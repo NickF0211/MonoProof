@@ -47,7 +47,7 @@ class Maxflow():
                             flows[edge] = new_bv(ceil(log2(edge.cap)))
                     else:
                         flows[edge] = 0
-
+        cond1 = None
         if pos and not self.encoded_pos:
             #recreate the flow assignment
             cond1 = self._encode_conservation(flows, constraint)
@@ -66,7 +66,8 @@ class Maxflow():
                     cuts[edge] = new_lit()
 
             rch = Reachability(self.graph, self.src, self.sink)
-
+            if not cond1:
+                cond1 = self._encode_conservation(flows, constraint)
             # Option 1, we show s-t unreachability on the residual graph
             reachability = rch.encode_unreach_residual(constraint, flows)
             cond2= LT(self._encode_in_flow(self.sink, flows, constraint), self.target_flow, constraint)
@@ -78,7 +79,7 @@ class Maxflow():
             # reachability = rch.encode(constraint, enabling_cond=_cut_assignment, reach_cond=False, unreach_cond=True)
             # # cond 2: the sum of cut's cap must be less than the target flow
             # cond2 = self.check_cut_constraint_unhint(cuts,constraint)
-            constraint.append([IMPLIES(-predicate, g_AND([AND(cond2, -reachability, constraint)], constraint), constraint)])
+            constraint.append([IMPLIES(-predicate, g_AND([AND(cond2, -reachability, constraint), cond1], constraint), constraint)])
             self.encoded_neg = True
 
         if self.encoded_neg and self.encoded_pos:
