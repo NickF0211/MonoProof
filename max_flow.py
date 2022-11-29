@@ -1,6 +1,7 @@
 from bv import *
 from graph import *
 from reachability import Reachability
+from math import ceil, log2
 
 class Maxflow():
     Collection = {}
@@ -34,7 +35,16 @@ class Maxflow():
             if edge.cap is None:
                 flows[edge] = 0
             else:
-                flows[edge] = new_bv(edge.cap.width)
+                if isinstance(edge.cap, BV):
+                    flows[edge] = new_bv(edge.cap.width)
+                elif isinstance(edge.cap, int):
+                    if edge.cap > 0:
+                        if edge.cap == 1:
+                            flows[edge] = new_bv(1)
+                        else:
+                            flows[edge] = new_bv(ceil(log2(edge.cap)))
+                    else:
+                        flows[edge] = 0
 
         cond1 = self._encode_conservation(flows, constraint)
         cond2 = self._encode_capacity_check(flows, constraint)
