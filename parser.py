@@ -222,7 +222,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 else:
                     print("hi encoded")
             else:
-                mf.encode(new_constraints)
+                mf.encode(new_constraints, pos= True, neg = False)
                 is_drup = False
 
 
@@ -239,7 +239,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 else:
                     print("hi encoded")
             else:
-                mf.encode(new_constraints)
+                mf.encode(new_constraints, neg = True, pos= False)
                 is_drup = False
 
         reach = Reachability.Collection.get(l, None)
