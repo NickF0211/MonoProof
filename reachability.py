@@ -47,13 +47,15 @@ class Reachability():
     def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True, force_witness = False):
         if enabling_cond in self.encoded:
             return self.lit
-
+        print("we are here")
         self.reachable[self.src] = TRUE()
         if reach_cond:
+            print("encode reach")
             self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
         if unreach_cond:
+            print("encode unreach")
             self.unreachability_constraint(set(), constraints, self.lit, enabling_cond, force_witness=force_witness)
-
+        print("done")
         self.encoded.add(enabling_cond)
         return self.lit
 
