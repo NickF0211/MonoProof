@@ -1,15 +1,17 @@
 from lit import *
 from logic_gate import *
 
+
 class BV():
     Bvs = {}
-    def __init__(self, width, body, id =None, value=-1):
+
+    def __init__(self, width, body, id=None, value=-1):
 
         assert width == 0 or body is None or len(body) == width
         assert value >= 0 or body is not None
 
         if body is None and width != 0:
-            #this is the case for unassigned BV
+            # this is the case for unassigned BV
             self.assigned = False
         else:
             self.assigned = True
@@ -42,7 +44,7 @@ class BV():
 
     def get_var(self, index):
         self.assign()
-        assert(index < self.width)
+        assert (index < self.width)
         return self.body[index]
 
     def set_var(self, index, var):
@@ -50,31 +52,32 @@ class BV():
         assert (index < self.width)
         self.get_body()[index] = var
 
-    def extend(self, padding_num, is_zeros = False):
+    def extend(self, padding_num, is_zeros=False):
         self.assign()
         if is_zeros:
             return BV(self.width + padding_num, [FALSE() for _ in range(padding_num)] + self.get_body())
         else:
-            return BV(self.width+padding_num, [new_lit() for _ in range(padding_num)] + self.get_body())
+            return BV(self.width + padding_num, [new_lit() for _ in range(padding_num)] + self.get_body())
 
     def self_extend(self, padding_num, pad=FALSE):
         self.assign()
-        self.width = self.width+padding_num
+        self.width = self.width + padding_num
         self.body = [pad() for _ in range(padding_num)] + self.get_body()
 
     def get_value(self, model):
         value = 0
         for i in range(self.width):
-            if model[self.get_var(i) -1] > 0:
-                value += 2 ** (self.width - i-1)
+            if model[self.get_var(i) - 1] > 0:
+                value += 2 ** (self.width - i - 1)
         return value
 
 
 def get_bv(id):
     return BV.Bvs.get(id)
 
+
 def sub_bv(bv, start, end):
-    return BV(end-start, bv.get_body()[start:end])
+    return BV(end - start, bv.get_body()[start:end])
 
 
 def new_bv(width, set_var=True):
@@ -85,20 +88,24 @@ def new_bv(width, set_var=True):
         body = [0 for _ in range(width)]
     return BV(width, body)
 
+
 def new_unassigned_bv(width):
     assert width > 0
     return BV(width, None)
 
+
 def const_bv(id, width, value):
     assert width > 0
-    return BV(width, None, id = id, value = value)
+    return BV(width, None, id=id, value=value)
 
-def N_to_bit_array(const, width = -1):
+
+def N_to_bit_array(const, width=-1):
     inter = bin(const)[2:]
     if width != -1:
         assert (len(inter) <= width)
         inter = inter.zfill(width)
-    return [0  if b == '0' else 1 for b in inter]
+    return [0 if b == '0' else 1 for b in inter]
+
 
 def ntob(num):
     if num:
@@ -106,31 +113,32 @@ def ntob(num):
     else:
         return FALSE()
 
-def GT_const_strict(bv1, const, constraints=global_inv, equal = False):
+
+def GT_const_strict(bv1, const, constraints=global_inv, equal=False):
     if not equal:
         const = const + 1
     const_bv = N_to_bit_array(const, bv1.width)
     return g_AND([bv1.get_var(i) for i in range(len(const_bv)) if const_bv[i] == 1], constraints)
 
 
-def LT_const_strict(bv1, const, constraints=global_inv, equal = False):
+def LT_const_strict(bv1, const, constraints=global_inv, equal=False):
     if not equal:
-        const = const -1
+        const = const - 1
     const_bv = N_to_bit_array(const, bv1.width)
     return g_AND([-bv1.get_var(i) for i in range(len(const_bv)) if const_bv[i] == 0], constraints)
 
-def GT_const(bv1, const, constraints=global_inv, equal = False):
+
+def GT_const(bv1, const, constraints=global_inv, equal=False):
     if isinstance(bv1, int):
         if equal:
             return bv1 >= const
         else:
             return bv1 > const
-    if const > (2 ** bv1.width) -1:
+    if const > (2 ** bv1.width) - 1:
         return FALSE()
 
-    if const >= (2 ** bv1.width) -1 and not equal:
+    if const >= (2 ** bv1.width) - 1 and not equal:
         return FALSE()
-
 
     const_bv = N_to_bit_array(const, bv1.width)
     assert bv1.width == len(const_bv)
@@ -150,6 +158,7 @@ def GT_const(bv1, const, constraints=global_inv, equal = False):
     else:
         return g_OR(gts, constraints)
 
+
 def add(bv1, bv2, constraints=global_inv):
     if isinstance(bv1, int):
         bv1 = const_to_bv(bv1)
@@ -162,23 +171,27 @@ def add(bv1, bv2, constraints=global_inv):
         bv2.self_extend(bv1.width - bv2.width)
 
     assert bv1.width == bv2.width
-    bv3 = new_bv(bv1.width+1, set_var=False)
+    bv3 = new_bv(bv1.width + 1, set_var=False)
     c_i = FALSE()
     for r_i in range(bv1.width):
-        i = bv1.width-1-r_i
-        i_3 = i  +1
+        i = bv1.width - 1 - r_i
+        i_3 = i + 1
         bit1 = bv1.get_var(i)
         bit2 = bv2.get_var(i)
-        bit3 = XOR(XOR(bit1,bit2, constraints), c_i, constraints)
+        bit3 = XOR(XOR(bit1, bit2, constraints), c_i, constraints)
         bv3.set_var(i_3, bit3)
-        c_i = g_OR([AND(bit1,bit2, constraints), AND(bit1, c_i, constraints), AND(bit2, c_i, constraints)], constraints)
+        c_i = g_OR([AND(bit1, bit2, constraints), AND(bit1, c_i, constraints), AND(bit2, c_i, constraints)],
+                   constraints)
     bv3.set_var(0, c_i)
     return bv3
+
 
 '''
 Define addition operator that consider only the high bits of bv1 and bv2, the result is constraint
   on the upper bound of bv1 + bv2. 
 '''
+
+
 def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
@@ -186,7 +199,7 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
         bv2.self_extend(bv1.width - bv2.width)
     assert bv1.width == bv2.width
     if bv3 is None:
-        bv3 = new_bv(bv1.width+1)
+        bv3 = new_bv(bv1.width + 1)
         new_bv3 = bv3
     else:
         diff = (bv1.width + 1) - bv3.width
@@ -195,17 +208,18 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
         elif diff < 0:
             new_bv3 = sub_bv(bv3, bv3.width - bv1.width - 1, bv3.width)
         else:
-            new_bv3  = bv3
+            new_bv3 = bv3
 
-    constriant.append([_add_upper(bv1,bv2,new_bv3, constriant)])
+    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant)])
     return bv3
+
 
 def const_to_bv(const):
     body = N_to_bit_array(const)
-    return BV( len(body), [ntob(b) for b in body])
+    return BV(len(body), [ntob(b) for b in body])
 
 
-def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
+def add_mono(bv1, bv2, constraint=global_inv, bv3=None):
     if isinstance(bv1, int):
         bv1 = const_to_bv(bv1)
     if isinstance(bv2, int):
@@ -214,6 +228,44 @@ def add_mono(bv1, bv2, constraint=global_inv, bv3 = None):
     bv3 = add_lower(bv1, bv2, constraint, bv3)
     add_upper(bv1, bv2, constraint, bv3)
     return bv3
+
+
+def minus_mono(bv1, bv2, constraint):
+    if isinstance(bv1, int):
+        bv1 = const_to_bv(bv1)
+    if isinstance(bv2, int):
+        bv2 = const_to_bv(bv2)
+
+    # ensure bv1 is one more bit than bv2
+    if bv1.width <= bv2.width:
+        bv1 = bv1.extend(bv2.width + 1 - bv1.width)
+
+    if bv2.width < bv1.width + 1:
+        bv2 = bv2.extend(bv1.width - 1 - bv2.width)
+
+    bv3 = new_bv(bv2.width - 1)
+    bv1 = add_lower(bv3, bv2, constraint, bv1)
+    add_upper(bv2, bv3, constraint, bv1)
+    return bv3
+
+
+def minus(bv1, bv2, constraint, bv3):
+    if isinstance(bv1, int):
+        bv1 = const_to_bv(bv1)
+    if isinstance(bv2, int):
+        bv2 = const_to_bv(bv2)
+
+    # ensure bv1 is one more bit than bv2
+    if bv1.width <= bv2.width:
+        bv1 = bv1.extend(bv2.width + 1 - bv1.width)
+
+    if bv2.width < bv1.width + 1:
+        bv2 = bv2.extend(bv1.width - 1 - bv2.width)
+
+    bv3 = new_bv(bv2.width - 1)
+    new_bv1 = add(bv3, bv2, constraint)
+    return Equal(bv1, new_bv1, constraint)
+
 
 def bv_and(bv1, bit, constraints):
     if isinstance(bv1, int):
@@ -226,6 +278,7 @@ Define addition operator that consider only the high bits of bv1 and bv2, the re
   on the lower bound of bv1 + bv2. 
 '''
 
+
 def add_lower(bv1, bv2, constriant=global_inv, bv3=None):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
@@ -233,20 +286,21 @@ def add_lower(bv1, bv2, constriant=global_inv, bv3=None):
         bv2.self_extend(bv1.width - bv2.width)
     assert bv1.width == bv2.width
     if bv3 is None:
-        bv3 = new_bv(bv1.width+1)
+        bv3 = new_bv(bv1.width + 1)
         new_bv3 = bv3
     else:
         diff = (bv1.width + 1) - bv3.width
-        if diff  > 0:
+        if diff > 0:
             new_bv3 = bv3.extend(diff, is_zeros=True)
         elif diff < 0:
-            new_bv3 = sub_bv(bv3, bv3.width - bv1.width-1, bv3.width)
+            new_bv3 = sub_bv(bv3, bv3.width - bv1.width - 1, bv3.width)
         else:
             new_bv3 = bv3
 
-    #constriant.append([_add_lower(bv1,bv2,new_bv3, bv1.width, zeros(bv1.width+1, dtype=int), constriant)])
+    # constriant.append([_add_lower(bv1,bv2,new_bv3, bv1.width, zeros(bv1.width+1, dtype=int), constriant)])
     constriant.append([_add_lower(bv1, bv2, new_bv3, constriant)])
     return new_bv3
+
 
 def _get_lower_bound_condition(bv1, bv2, bv3, i, constraint, storage=None):
     res = storage.get(i, None)
@@ -261,15 +315,15 @@ def _get_lower_bound_condition(bv1, bv2, bv3, i, constraint, storage=None):
             b3 = bv3.get_var(i)
             acceptance_condition = g_AND([-b1, -b2, b3], constraint, forward=False)
             valid_condition = g_OR([-b1, -b2, b3], constraint, forward=False)
-            prev_res = _get_lower_bound_condition(bv1, bv2, bv3, i-1, constraint, storage)
-            result = OR(acceptance_condition, AND(prev_res, valid_condition, constraint, forward=False), constraint, forward=False)
+            prev_res = _get_lower_bound_condition(bv1, bv2, bv3, i - 1, constraint, storage)
+            result = OR(acceptance_condition, AND(prev_res, valid_condition, constraint, forward=False), constraint,
+                        forward=False)
 
             storage[i] = result
             return result
 
 
-def _add_lower(bv1, bv2, bv3, constraint = global_inv):
-
+def _add_lower(bv1, bv2, bv3, constraint=global_inv):
     if (bv1.width == 0):
         return TRUE()
 
@@ -280,7 +334,8 @@ def _add_lower(bv1, bv2, bv3, constraint = global_inv):
         i = bv1.width - 1 - r_i
         bit1 = bv1.get_var(i)
         bit2 = bv2.get_var(i)
-        carry_on = OR(AND(carry_on, OR(bit1, bit2, constraint, backward=False), constraint), AND(bit1, bit2, constraint, backward=False), constraint, backward=False)
+        carry_on = OR(AND(carry_on, OR(bit1, bit2, constraint, backward=False), constraint),
+                      AND(bit1, bit2, constraint, backward=False), constraint, backward=False)
         carries.append(carry_on)
     carries.reverse()
     cache_storage = dict()
@@ -288,9 +343,10 @@ def _add_lower(bv1, bv2, bv3, constraint = global_inv):
         i = bv1.width - 1 - r_i
         bit1 = bv1.get_var(i)
         bit2 = bv2.get_var(i)
-        bit3 = bv3.get_var(i+1)
-        contain_bit = g_OR([bit1, bit2, carries[i+1]], constraint, backward=False)
-        rules.append(IMPLIES(g_AND([bit1, bit2, carries[i+1]], constraint, backward=False) , bit3, constraint, forward=False))
+        bit3 = bv3.get_var(i + 1)
+        contain_bit = g_OR([bit1, bit2, carries[i + 1]], constraint, backward=False)
+        rules.append(
+            IMPLIES(g_AND([bit1, bit2, carries[i + 1]], constraint, backward=False), bit3, constraint, forward=False))
         acceptance_condition = _get_lower_bound_condition(bv1, bv2, bv3, i, constraint, storage=cache_storage)
         rules.append(IMPLIES(contain_bit, OR(bit3, acceptance_condition, constraint), constraint, forward=False))
 
@@ -307,30 +363,31 @@ def _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i, constraint, sto
         if i == bv1.width:
             return FALSE()
         else:
-            b1 = bv1.get_var(i )
-            b2 = bv2.get_var(i )
-            b3 = bv3.get_var(i+1)
+            b1 = bv1.get_var(i)
+            b2 = bv2.get_var(i)
+            b3 = bv3.get_var(i + 1)
             acceptance_condition = g_AND([b1, b2, -b3], constraint, forward=False)
             valid_condition = AND(IMPLIES(OR(-b1, -b2, constraint, forward=False), -b3, constraint, forward=False),
-                                                             -Ncarries_overs[i], constraint, forward=False)
-            prev_res = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i+1, constraint, storage)
-            result = OR(acceptance_condition, AND(prev_res, valid_condition, constraint, forward=False), constraint, forward=False)
+                                  -Ncarries_overs[i], constraint, forward=False)
+            prev_res = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i + 1, constraint, storage)
+            result = OR(acceptance_condition, AND(prev_res, valid_condition, constraint, forward=False), constraint,
+                        forward=False)
 
             storage[i] = result
             return result
 
-def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False):
 
+def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False):
     index = bv1.width
-    t_AND = lambda a, b, constraint : AND(a,b,constraint, forward=forward, backward=backward)
+    t_AND = lambda a, b, constraint: AND(a, b, constraint, forward=forward, backward=backward)
     t_OR = lambda a, b, constraint: OR(a, b, constraint, forward=forward, backward=backward)
 
     rules = []
     NC = TRUE()
     Ncarries_overs = [NC]
-    #calculate the NCR bits
+    # calculate the NCR bits
     for r_i in range(index):
-        i = index-r_i-1
+        i = index - r_i - 1
         bit1 = bv1.get_var(i)
         bit2 = bv2.get_var(i)
         NC = t_OR(t_AND(NC, t_OR(-bit1, -bit2, constraint), constraint), t_AND(-bit1, -bit2, constraint), constraint)
@@ -341,35 +398,33 @@ def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=Fals
         i = index - r_i - 1
         bit1 = bv1.get_var(i)
         bit2 = bv2.get_var(i)
-        bit3 = bv3.get_var(i+1)
+        bit3 = bv3.get_var(i + 1)
         neither_bit = t_AND(-bit1, -bit2, constraint)
-        accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i+1, constraint, storage=cache_storage)
+        accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i + 1, constraint,
+                                                        storage=cache_storage)
         rules.append(IMPLIES(neither_bit, OR(-bit3, accepted_condition, constraint), constraint, forward=False))
 
-
     accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, 0, constraint, storage=cache_storage)
-    rules.append( OR(-bv3.get_var(0), accepted_condition, constraint, forward=False))
+    rules.append(OR(-bv3.get_var(0), accepted_condition, constraint, forward=False))
 
     res = g_AND(rules, constraint, forward=False)
     return res
 
 
-
-
-
 def GE_const(bv1, const, constraints=global_inv):
     return GT_const(bv1, const, constraints, equal=True)
+
 
 def LT_const(bv1, const, constraints=global_inv):
     return -GE_const(bv1, const, constraints)
 
-def LE_const(bv1, const, constraints= global_inv):
+
+def LE_const(bv1, const, constraints=global_inv):
     return -GT_const(bv1, const, constraints, equal=False)
 
 
-
 def nomrailize(bv1, bv2):
-    diff = bv1.width  - bv2.width
+    diff = bv1.width - bv2.width
     if diff == 0:
         return bv1, bv2
     elif diff > 0:
@@ -379,13 +434,14 @@ def nomrailize(bv1, bv2):
         padding_BV = BV(bv2.width, [FALSE() for _ in range(-diff)] + bv1.get_body())
         return padding_BV, bv2
 
-#assume bv1 and bv2 have the same width
-#return the constraint showing bv1 > bv2
-def GT(bv1, bv2, constraints=global_inv, equal = False):
+
+# assume bv1 and bv2 have the same width
+# return the constraint showing bv1 > bv2
+def GT(bv1, bv2, constraints=global_inv, equal=False):
     if isinstance(bv2, int):
         return GT_const(bv1, bv2, constraints, equal=equal)
     elif isinstance(bv1, int):
-        return -GT_const(bv2, bv1, constraints, equal= not equal)
+        return -GT_const(bv2, bv1, constraints, equal=not equal)
 
     bv1, bv2 = nomrailize(bv1, bv2)
     assert bv1.width == bv2.width
@@ -404,14 +460,16 @@ def GT(bv1, bv2, constraints=global_inv, equal = False):
 
 
 def GE(bv1, bv2, constraints=global_inv):
-
     return GT(bv1, bv2, constraints, equal=True)
+
 
 def LT(bv1, bv2, constraints=global_inv):
     return GT(bv2, bv1, constraints)
 
+
 def LE(bv1, bv2, constraints=global_inv):
     return GE(bv2, bv1, constraints)
+
 
 def Equal(bv1, bv2, constraints=global_inv):
     if isinstance(bv1, int):
@@ -425,28 +483,32 @@ def Equal(bv1, bv2, constraints=global_inv):
             bv2.self_extend(bv1.width - bv2.width)
         assert (bv1.width == bv2.width)
         width = bv1.width
-        return g_AND([IFF(bv1.get_var(i), bv2.get_var(i), constraints)  for i in range(width)], constraints)
+        return g_AND([IFF(bv1.get_var(i), bv2.get_var(i), constraints) for i in range(width)], constraints)
 
-def NEqual(bv1, bv2, constraints = global_inv):
+
+def NEqual(bv1, bv2, constraints=global_inv):
     return NOT(Equal(bv1, bv2, constraints))
+
 
 def Equal_const(bv1, const, constraints=global_inv):
     if isinstance(bv1, int):
-        if bv1 == const :
-             return TRUE()
+        if bv1 == const:
+            return TRUE()
         else:
             return FALSE()
     else:
         const_bv = N_to_bit_array(const, bv1.width)
         width = bv1.width
-        return g_AND([IFF(bv1.get_var(i), ntob(const_bv[i]), constraints)   for i in range(width)], constraints)
+        return g_AND([IFF(bv1.get_var(i), ntob(const_bv[i]), constraints) for i in range(width)], constraints)
 
-def NEQ_const(bv1, const, constraint = global_inv):
+
+def NEQ_const(bv1, const, constraint=global_inv):
     return NOT(Equal_const(bv1, const, constraint))
 
 
 class Comparsion():
     Collection = {}
+
     def __init__(self, bv1, bv2, op, lit=None):
         self.bv1 = bv1
         self.bv2 = bv2
@@ -483,7 +545,8 @@ class Comparsion():
             self.encoded = True
             return self.lit
 
-def add_compare(bv1, bv2, op, lit, constraints = global_inv):
+
+def add_compare(bv1, bv2, op, lit, constraints=global_inv):
     if isinstance(bv1, int):
         bv1 = get_bv(bv1)
     if isinstance(bv2, int):
@@ -497,6 +560,7 @@ def add_compare(bv1, bv2, op, lit, constraints = global_inv):
         if compare.lit != lit:
             Delayed_Equality.append((compare.lit, lit))
         return compare
+
 
 def add_compare_const(bv1, const, op, lit):
     if isinstance(bv1, int):
@@ -515,6 +579,7 @@ def add_compare_const(bv1, const, op, lit):
 
 class Comparsion_const():
     Collection = {}
+
     def __init__(self, bv1, const, op, lit=None):
         self.bv1 = bv1
         self.const = const
@@ -551,23 +616,27 @@ class Comparsion_const():
             self.encoded = True
             return self.lit
 
+
 class EQ():
     Collection = {}
+
     def __init__(self, a, b):
         self.a = a
         self.b = b
-        EQ.Collection[(a,b)] = self
+        EQ.Collection[(a, b)] = self
         EQ.Collection[(b, a)] = self
         self.result = None
 
-    def encode(self, constraints = global_inv):
+    def encode(self, constraints=global_inv):
         if self.result is None:
             self.result = IFF(self.a, self.b, constraints)
             constraints.append([self.result])
         return self.result
 
+
 class ADD():
     Collection = {}
+
     def __init__(self, result, bv1, bv2):
         self.result = result
         self.bv1 = bv1
@@ -575,7 +644,7 @@ class ADD():
         self.encoded = False
         ADD.Collection[result] = self
 
-    def encode(self, constraints = global_inv):
+    def encode(self, constraints=global_inv):
         if not self.encoded:
             add_mono(self.bv1, self.bv2, constraints, self.result)
             self.encoded = True
@@ -590,6 +659,7 @@ def add_Add(result, bv1, bv2):
         result = get_bv(result)
     return ADD(result, bv1, bv2)
 
+
 def parse_const_comparsion(attributes):
     head = attributes[0]
     if head in [">=", "<=", ">", "<", "==", "!="]:
@@ -597,12 +667,13 @@ def parse_const_comparsion(attributes):
         op, lit, bv, const = attributes
         add_compare_const(int(bv), int(const), op, add_lit(int(lit)))
     else:
-        #add a const bv
+        # add a const bv
         assert len(attributes) == 3
         bv_id, bv_width, bv_value = attributes
         const_bv(int(bv_id), int(bv_width), int(bv_value))
 
     return True
+
 
 def parse_comparsion(attributes):
     assert (len(attributes) == 4)
@@ -610,12 +681,12 @@ def parse_comparsion(attributes):
     add_compare(int(bv1), int(bv2), op, add_lit(int(lit)))
     return True
 
+
 def parse_addition(attributes):
     assert (len(attributes) == 3)
     result, bv1, bv2 = attributes
     add_Add(int(result), int(bv1), int(bv2))
     return True
-
 
 
 def parse_bv(attributes):

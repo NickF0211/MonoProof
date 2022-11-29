@@ -44,6 +44,38 @@ class Reachability():
 
         Reachability.Collection[lit] = self
 
+    def encode_unreach_residual(self, constraints, flow_assignment):
+        reachability = {}
+        def get_reachable(node):
+            if node in reachability:
+                return reachability[node]
+
+            if node == self.src:
+                return TRUE()
+            else:
+                res = new_lit()
+                reachability[node] = res
+                return res
+
+        validity_constraints = []
+
+        for node in self.graph.nodes:
+            obligation = []
+            for target, edge in get_node(self.graph, node).incoming.items():
+                flow = flow_assignment.get(edge, 0)
+                obligation.append(OR(-GT(edge.cap, flow), -get_reachable(target), constraints))
+
+            for target, edge in get_node(self.graph, node).outgoing.items():
+                flow = flow_assignment.get(edge, 0)
+                rflow = minus_mono(edge.cap, flow, constraints)
+                obligation.append(OR(-GT(rflow, 0), -get_reachable(target), constraints))
+
+            validity_constraints.append(
+                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
+
+        return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
+
+
     def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True, force_witness = False):
         if enabling_cond in self.encoded:
             return self.lit
@@ -244,7 +276,7 @@ class Reachability():
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond, force_witness=False):
         max_size = len(explored)
         #print(max_size)
-        if len(cut) == 0 and not force_witness:
+        if len(cut) == 0:
             max_distance = dict()
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond, max_distance)
         else:
