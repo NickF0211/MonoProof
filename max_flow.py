@@ -135,7 +135,7 @@ class Maxflow():
         #     if edge.cap is not None:
         #         #sum_cap = add(sum_cap, bv_and(edge.cap, cuts[edge],constraint), constraint)
         #         sum_cap = add_mono(sum_cap, bv_and(edge.cap, cuts[edge],constraint), constraint)
-        sum_cap = bv_sum([edge.cap for edge in self.graph.edges if edge.cap is not None], constraint, mono=True)
+        sum_cap = bv_sum([bv_and(edge.cap, cuts[edge], constraint) for edge in self.graph.edges if edge.cap is not None], constraint, mono=True)
         return LT(sum_cap, self.target_flow, constraint)
 
     def check_cut_caps(self, cut, constraint):
