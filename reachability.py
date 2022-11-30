@@ -276,22 +276,31 @@ class Reachability():
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond, force_witness=False):
         max_size = len(explored)
         #print(max_size)
-        if len(cut) == 0:
+        if len(cut) == 0 and not force_witness:
             max_distance = dict()
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond, max_distance)
         else:
             #use the information in the cut to perform the witness encoding
-            return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond)
+            return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond, is_forced = force_witness)
 
 
-    def wtiness_reduced_unreachability(self, constraints, explored, enabling_cond):
+    def wtiness_reduced_unreachability(self, constraints, explored, enabling_cond, is_forced = False):
+        reachability = {}
         def get_reachable(node):
             if node == self.src:
                 return TRUE()
             elif node in explored:
                 return FALSE()
             else:
-                return TRUE()
+                if is_forced:
+                    if node in reachability:
+                        return reachability[node]
+                    else:
+                        res = new_lit()
+                        reachability[node] = res
+                        return res
+                else:
+                    return TRUE()
         validity_constraints = []
 
         for node in explored:
