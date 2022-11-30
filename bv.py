@@ -674,6 +674,39 @@ def parse_const_comparsion(attributes):
 
     return True
 
+from sortedcontainers import SortedList
+def bv_sum(items, constraints, mono=True):
+    # organize elements to determine summing order
+
+    base_int = 0
+    bv_items = SortedList(key=lambda bv: bv.width)
+    for item in items:
+        if isinstance(item, int):
+            base_int += items
+        elif isinstance(item, BV):
+            bv_items.add(item)
+        else:
+            assert False
+
+    if not bv_items:
+        return base_int
+    else:
+        cur = bv_items.pop(0)
+        while bv_items:
+            next = bv_items.pop(0)
+            if mono:
+                new_item = add_mono(cur, next, constraints)
+            else:
+                new_item = add(cur, next, constraints)
+            bv_items.add(new_item)
+            cur = bv_items.pop(0)
+        if base_int == 0:
+            return cur
+        else:
+            if mono:
+                return add_mono(cur, const_to_bv(base_int), constraints)
+            else:
+                return add(cur, const_to_bv(base_int), constraints)
 
 def parse_comparsion(attributes):
     assert (len(attributes) == 4)

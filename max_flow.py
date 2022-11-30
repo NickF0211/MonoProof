@@ -66,6 +66,7 @@ class Maxflow():
                     cuts[edge] = new_lit()
 
             rch = Reachability(self.graph, self.src, self.sink)
+
             if not cond1:
                 cond1 = self._encode_conservation(flows, constraint)
             # Option 1, we show s-t unreachability on the residual graph
@@ -151,22 +152,25 @@ class Maxflow():
         return  LT(sum_cap, self.target_flow, constraint)
 
     def _encode_in_flow(self, node, flows, constraint):
-        in_flow = 0
-        for _, in_edge in get_node(self.graph, node).incoming.items():
-            flow = flows.get(in_edge, 0)
-            if isinstance(flow, BV) or  flow > 0:
-                in_flow = add_mono(in_flow, flow, constraint)
-
-        return in_flow
+        return bv_sum([flows.get(in_edge, 0) for _, in_edge in get_node(self.graph, node).incoming.items()], constraint, mono=True)
+        # in_flow = 0
+        # for _, in_edge in get_node(self.graph, node).incoming.items():
+        #     flow = flows.get(in_edge, 0)
+        #     if isinstance(flow, BV) or  flow > 0:
+        #         in_flow = add_mono(in_flow, flow, constraint)
+        #
+        # return in_flow
 
     def _encode_out_flow(self, node, flows, constraint):
-        out_flow = 0
-        for _, out_edge in get_node(self.graph, node).outgoing.items():
-            flow = flows.get(out_edge, 0)
-            if isinstance(flow, BV)  or flow > 0:
-                out_flow = add_mono(out_flow, flow, constraint)
-
-        return out_flow
+        return bv_sum([flows.get(in_edge, 0) for _, in_edge in get_node(self.graph, node).outgoing.items()], constraint,
+                      mono=True)
+        # out_flow = 0
+        # for _, out_edge in get_node(self.graph, node).outgoing.items():
+        #     flow = flows.get(out_edge, 0)
+        #     if isinstance(flow, BV)  or flow > 0:
+        #         out_flow = add_mono(out_flow, flow, constraint)
+        #
+        # return out_flow
 
     def _encode_capacity_check(self, flows, constraint):
         conditions = []
