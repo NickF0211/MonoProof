@@ -1,18 +1,39 @@
 import glob
 from mono_proof import launch_monosat, run_and_prove, Record
-from parser import reextension
+import signal
 
+
+def signal_handler(signum, frame):
+    if signum == signal.SIGALRM:
+        print("timeout {}".format(frame))
+        raise TimeoutError
+
+
+signal.signal(signal.SIGALRM, signal_handler)
+
+instance_timeout = 5
 instances = glob.glob("gnfs/*.gnf")
 with open("max_flow.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
     for instance in instances:
         record = Record(instance)
-        res = run_and_prove(instance, record, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
-                                                              "-vsids-both", "-decide-theories", "-no-decide-graph-rnd",
-                                                              "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                              "-conflict-min-cut-maxflow", "-adaptive-history-clear=5"], witness_reduction=True)
-        outfile.write(str(record) + '\n')
-
+        # set timeout for three hours
+        signal.alarm(instance_timeout)
+        try:
+            res = run_and_prove(instance, record, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
+                                                               "-vsids-both", "-decide-theories",
+                                                               "-no-decide-graph-rnd",
+                                                               "-lazy-maxflow-decisions", "-conflict-min-cut",
+                                                               "-conflict-min-cut-maxflow",
+                                                               "-adaptive-history-clear=5"], witness_reduction=True)
+            outfile.write(str(record) + '\n')
+        except TimeoutError:
+            outfile.write("{} timeout ({} secs) \n".format(instances, instance_timeout))
+        except Exception:
+            outfile.write("{} error) \n".format(instances, instance_timeout))
+        finally:
+            # reset alarm
+            signal.alarm(0)
 
     # inputs = file.readlines()
     # pre_content = ''.join(inputs[:-2])
