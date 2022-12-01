@@ -417,6 +417,16 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
                     break
 
 
+# if __name__ == "__main__":
+#     parse_file("maze.gnf")
+#     w1 = Distance_LEQ.Collection
+#     w2 = w1.pop(1906)
+#     constraint = []
+#     w2.encode(constraint)
+#     for c in constraint:
+#         print()
+#         "{} 0 \n".format(' '.join([str(b) for b in c]))
+#     print(constraint)
 '''
 model = get_model(cnfs + global_inv)
 if model:

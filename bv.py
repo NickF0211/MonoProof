@@ -67,7 +67,7 @@ class BV():
     def get_value(self, model):
         value = 0
         for i in range(self.width):
-            if model[self.get_var(i) - 1] > 0:
+            if self.get_var(i) != FALSE() and model[self.get_var(i) - 1] > 0:
                 value += 2 ** (self.width - i - 1)
         return value
 

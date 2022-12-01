@@ -304,11 +304,31 @@ def add_performance_sequential_test():
     write_dimacs(test_file, constraints)
 
 
+def test_eq():
+    bv1 = new_bv(randint(1,16))
+    bv2 = new_bv(randint(1,16))
+    constraints = []
+    sum1 = add(bv1, bv2, constraints)
+    sum2 = add_mono(bv1, bv2, constraints)
+    constraints.append([LT(add_mono(sum1, 1, constraints), add(sum2, 1, constraints), constraints)])
+    test_file = "test_mono.dimacs"
+    write_dimacs(test_file, constraints)
+    prover = Prover(get_lits_num(), constraints + global_inv)
+    prover.propgate()
+
+    s = Solver()
+    s.from_file(test_file)
+    res = s.check()
+    if res == unsat:
+        print(unsat)
+    else:
+        assert (False)
+
 
 if __name__ == "__main__":
     width = 16
     layers = 3
-    test_upper(8)
+    test_eq()
     #add_performance_test2(width, layers, is_momnotoinc=True)
     #reset()
     #add_performance_test2(width, layers, is_momnotoinc=False)

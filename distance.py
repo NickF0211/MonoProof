@@ -89,6 +89,9 @@ class Distance_LEQ():
     def get_distance(self, node):
         return self.distance.get_distance(node)
 
+    def get_reachable(self, node):
+        return self.distance.get_reachable(node)
+
 
     def encode(self, constraints):
         if self.encoded:
@@ -96,7 +99,8 @@ class Distance_LEQ():
         else:
             #for every node in the graph,
             self.distance.initialize(constraints)
-            result =  LE_const(self.get_distance(self.sink), self.target_value, constraints)
+            result =  AND(LE_const(self.get_distance(self.sink), self.target_value, constraints),
+                          self.get_reachable(self.sink), constraints)
             constraints.append([IFF(result, self.lit, constraints)])
             return self.lit
 

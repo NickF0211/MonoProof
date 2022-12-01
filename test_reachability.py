@@ -1,6 +1,16 @@
 from max_flow import *
 from prover import Prover
-from solver import is_sat, get_proof, optimize_proof, is_rat
+from solver import is_sat, get_proof, optimize_proof, is_rat, get_model
+from distance import Distance_LEQ
+from logic_gate import cache_rest
+
+
+def debug_distance(model, dr):
+    distance_graph = dr
+    for node in dr.graph.nodes:
+        d = distance_graph.get_distance(node)
+        print("{} reachable: {} at distance {}".format(node, distance_graph.get_reachable(node) in model,
+                                                       d.get_value(model)))
 
 if __name__ == "__main__":
     constraint = []
@@ -30,24 +40,70 @@ if __name__ == "__main__":
 
     reachable = r05.encode(constraint)
 
-    push(constraint)
-    constraint.append([-reachable])
-    constraint.append([g_AND([e01.lit, e13.lit, e35.lit], constraint)])
-    assert(not is_sat(constraint + global_inv))
-    assert (is_rat(constraint + global_inv))
-    pop(constraint)
+    test_1_clause = []
+    test_1_clause.append([-IMPLIES(g_AND([e01.lit, e13.lit, e35.lit], test_1_clause), reachable, test_1_clause)])
+    assert(not is_sat(constraint + global_inv+ test_1_clause))
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append([-IMPLIES(g_AND([e01.lit, e13.lit], test_1_clause), reachable, test_1_clause)])
+    assert ( is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append([-IMPLIES(g_AND([-e01.lit, -e21.lit, -e45.lit, -e43.lit], test_1_clause), -reachable, test_1_clause)])
+    assert (not is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([-e01.lit, -e45.lit, -e43.lit], test_1_clause), -reachable, test_1_clause)])
+    assert ( is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
+
+    dr05 = Distance_LEQ(g, node0, node5, 3)
+    distance = dr05.encode(constraint)
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([-e01.lit, -e21.lit, -e45.lit, -e43.lit], test_1_clause), -distance, test_1_clause)])
+    assert (not is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
 
 
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([-e01.lit, -e21.lit, -e45.lit], test_1_clause), -distance, test_1_clause)])
+    assert (not is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([-e01.lit, -e21.lit], test_1_clause), -distance, test_1_clause)])
+    assert (is_sat(constraint + global_inv + test_1_clause))
+    #debug_distance(get_model(constraint + global_inv + test_1_clause), dr05)
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([e01.lit, e13.lit, e35.lit], test_1_clause), distance, test_1_clause)])
+    assert (not is_sat(constraint + global_inv + test_1_clause))
+    cache_rest()
+
+    test_1_clause = []
+    test_1_clause.append(
+        [-IMPLIES(g_AND([e01.lit, e35.lit], test_1_clause), distance, test_1_clause)])
+    assert (is_sat(constraint + global_inv + test_1_clause))
+    #debug_distance(get_model(constraint + global_inv + test_1_clause), dr05)
+    cache_rest()
 
     #unreachable_hint = [e02, e13]
     #reachable = r05.encode(set(unreachable_hint), False, constraint)
     #reachable = r05.encode(constraint)
-    push(constraint)
-    constraint.append([-reachable])
-    constraint.append([g_AND([-e01.lit, e02.lit, e13.lit, e21.lit, e24.lit, e43.lit, e32.lit, e35.lit, -e45.lit], constraint)])
-    assert (not is_sat(constraint + global_inv))
-    assert (is_rat(constraint + global_inv))
-    pop(constraint)
-
+    #push(constraint)
+    # constraint.append([-reachable])
+    # constraint.append([g_AND([-e01.lit, e02.lit, e13.lit, e21.lit, e24.lit, e43.lit, e32.lit, e35.lit, -e45.lit], constraint)])
+    # assert (not is_sat(constraint + global_inv))
+    #assert (is_rat(constraint + global_inv))
+    #pop(constraint)
 
 
