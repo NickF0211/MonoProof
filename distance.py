@@ -107,7 +107,7 @@ def parse_distance(attributes):
         head, gid, src, target, lit, distance = attributes
         gid = int(gid)
         graph = get_graph(gid)
-        head, tail = head.split('_')
+        tail = head.split('_')[-1]
         src = get_node(graph, int(src))
         sink = get_node(graph, int(target))
         distance = int(distance)
