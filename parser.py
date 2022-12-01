@@ -236,7 +236,8 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     cut = process_cut_witness(mf, sup)
                     mf.encode_with_hint(cut, False, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
-                    is_drup = check_pure_cut(cut[0])
+                    #is_drup = check_pure_cut(cut[0])
+                    is_drup = False
                 else:
                     print("hi encoded")
             else:
@@ -263,12 +264,12 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
             distance.encode(new_constraints)
-            is_drup = False
+            #is_drup = False
 
         distance = Distance_LEQ.Collection.get(-l, None)
         if distance is not None:
             distance.encode(new_constraints)
-            is_drup = False
+            #is_drup = False
 
     if block_process:
         return [orig_lemma], is_drup
@@ -331,7 +332,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                     print(processed)
                 else:
                     buffer += sub_proofs
-                    if (len(buffer) > 100 or lemma_confirmed == reverse_obligation[-1]):
+                    if (len(buffer) > 10000 or lemma_confirmed == reverse_obligation[-1]):
                         sub_proofs = get_blocked_proof(constraints + global_inv + new_constraints.content, buffer, optimize=True)
                         proofs.append(sub_proofs)
                         processed += len(buffer)

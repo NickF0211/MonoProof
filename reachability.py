@@ -180,6 +180,7 @@ class Reachability():
         if dynamic:
             if self.unreach_hint_old_explored is None:
                 explored = self.compute_unreachable_graph(cut)
+                assert self.src not in explored
                 t_final = self.compute_unreachable_graph_by_cut(cut, explored, constraint, self.distance, enabling_cond)
                 # the mono_encoding
                 constraint.append([IMPLIES(predicate, t_final, constraint)])
@@ -222,7 +223,7 @@ class Reachability():
             else:
                 explored.add(head)
                 for target, edge in get_node(self.graph, head).incoming.items():
-                    if not on_cut(edge, cut, is_edge_lit) and target not in explored:
+                    if (not on_cut(edge, cut, is_edge_lit)) and (target not in explored):
                         open.append(target)
         return explored
 

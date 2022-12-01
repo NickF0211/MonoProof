@@ -53,6 +53,7 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
 
 def verify_full_proof(cnf, proof_file):
 
+    print(' '.join([drat_trim_orig_path, cnf, proof_file]))
     process = subprocess.Popen([drat_trim_orig_path, cnf, proof_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -238,7 +239,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "test.gnf"
+    gnf = "gnfs/bga_microvia_through_ti_am5718_1.gnf"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
@@ -246,4 +247,9 @@ if __name__ == "__main__":
     #verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
     #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/1-nodag-nodiff-trvs-altera_10ax048_780.gnf")
     #run_and_prove("max_flow.gnf")
-    run_and_prove(gnf)
+    run_and_prove(gnf, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
+                                                               "-vsids-both", "-decide-theories",
+                                                               "-no-decide-graph-rnd",
+                                                               "-lazy-maxflow-decisions", "-conflict-min-cut",
+                                                               "-conflict-min-cut-maxflow",
+                                                               "-adaptive-history-clear=5"])
