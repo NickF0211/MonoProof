@@ -82,7 +82,7 @@ def parse_line(line, cnfs):
             return parse_edge_bv(line_token[1:])
         elif header == "reach":
             return parse_reach(line_token[1:])
-        elif header.startswith("distance_"):
+        elif header.startswith("distance_") or header.startswith("weighted_distance_") :
             return parse_distance(line_token)
         elif header.startswith("maximum_flow"):
             return parse_maxflow(line_token)
