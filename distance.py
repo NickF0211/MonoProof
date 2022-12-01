@@ -97,7 +97,7 @@ class Distance_LEQ():
             #for every node in the graph,
             self.distance.initialize(constraints)
             result =  LE_const(self.get_distance(self.sink), self.target_value, constraints)
-            constraints.append(IFF(result, self.lit, constraints))
+            constraints.append([IFF(result, self.lit, constraints)])
             return self.lit
 
 def parse_distance(attributes):
