@@ -44,17 +44,17 @@ class Distance_Collector():
                     for target, edge in get_node(self.graph, node).incoming.items():
                         gt_distance = GT(self.get_distance(node), self.get_distance(target), constraints)
                         temp_constraints.append( g_AND([gt_distance, edge.lit, self.get_reachable(target)], constraints))
-                    constraints.append(g_OR(temp_constraints, constraints))
+                    constraints.append([g_OR(temp_constraints, constraints)])
 
 
                 #forward constraints:
                 for target, edge in get_node(self.graph, node).outgoing.items():
-                    constraints.append(IMPLIES(AND(edge.lit, self.get_reachable(node), constraints),
+                    constraints.append([IMPLIES(AND(edge.lit, self.get_reachable(node), constraints),
                                                AND(LE(self.get_distance(target),
                                                             add_mono(self.get_distance(node), 1, constraints)),
                                                                                             self.get_reachable(target),
                                                                                                constraints),
-                                                            constraints))
+                                                            constraints)])
 
             self.initialized = True
 
