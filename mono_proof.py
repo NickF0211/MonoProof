@@ -239,7 +239,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "gnfs/bga_microvia_through_ti_am5718_1.gnf"
+    gnf = "example.gnf"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
@@ -251,5 +251,5 @@ if __name__ == "__main__":
                                                                "-vsids-both", "-decide-theories",
                                                                "-no-decide-graph-rnd",
                                                                "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                               "-conflict-min-cut-maxflow",
+
                                                                "-adaptive-history-clear=5"])

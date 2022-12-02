@@ -49,9 +49,10 @@ class Distance_Collector():
 
                 #forward constraints:
                 for target, edge in get_node(self.graph, node).outgoing.items():
-                    constraints.append([IMPLIES(AND(edge.lit, self.get_reachable(node), constraints),
+                    cond1 = AND(edge.lit, self.get_reachable(node), constraints)
+                    constraints.append([IMPLIES(cond1,
                                                AND(LE(self.get_distance(target),
-                                                            add_mono(self.get_distance(node), 1, constraints)),
+                                                            add_mono(self.get_distance(node), 1, constraints), constraints),
                                                                                             self.get_reachable(target),
                                                                                                constraints),
                                                             constraints)])

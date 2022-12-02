@@ -193,7 +193,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
     for l in lemmas:
         ac = Acyclic.Collection.get(l, None)
         if ac is not None:
-            ac.encode_acyclic_clause(constraints)
+            ac.encode_acyclic_clause(new_constraints)
             assert False
 
         ac = Acyclic.Collection.get(-l, None)
@@ -223,7 +223,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     print("hi encoded")
             else:
                 #TODO, disable false
-                mf.encode(new_constraints, pos= True, neg = False)
+                mf.encode(new_constraints, pos= True, neg = Falsex)
                 is_drup = False
 
 
@@ -327,8 +327,8 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                                                   verified_lemmas, block_process=True, witness_reduction=witness_reduction)
                 if is_drup:
                     proofs.append(sub_proofs)
-                    processed += 1
-                    print(processed)
+                    # processed += 1
+                    # print(processed)
                 else:
                     buffer += sub_proofs
                     if (len(buffer) > 10000 or lemma_confirmed == reverse_obligation[-1]):
