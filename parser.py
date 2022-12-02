@@ -236,8 +236,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     cut = process_cut_witness(mf, sup)
                     mf.encode_with_hint(cut, False, new_constraints, dynamic= True)
                     #processed_witness.add(sup)
-                    #is_drup = check_pure_cut(cut[0])
-                    is_drup = False
+                    is_drup = check_pure_cut(cut[0])
                 else:
                     print("hi encoded")
             else:

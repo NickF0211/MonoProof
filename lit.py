@@ -73,7 +73,7 @@ import shutil
 def rewrite_header(sourcefile, filename, cnf, addition_encoder):
     with open(sourcefile, 'r') as infile:
         with open(filename, 'w') as outfile:
-            clause_len = len(cnf)+len(global_inv)+ addition_encoder.size
+            clause_len = len(cnf)+ addition_encoder.size
             infile.readline()
             outfile.write("p cnf {} {} \n".format(str(lits), str(clause_len)))
             shutil.copyfileobj(infile, outfile)
