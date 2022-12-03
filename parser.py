@@ -7,7 +7,7 @@ from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsio
 from lit import add_lit, write_dimacs, global_inv
 import os
 from predicate import encode_all, pre_encode
-from solver import is_sat, get_model, get_proof, get_blocked_proof
+from solver import is_sat, get_model, get_proof, get_blocked_proof, is_rat
 from bv import BV
 from max_flow import *
 
@@ -223,7 +223,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                     print("hi encoded")
             else:
                 #TODO, disable false
-                mf.encode(new_constraints, pos= True, neg = Falsex)
+                mf.encode(new_constraints, pos= True, neg = False)
                 is_drup = False
 
 
@@ -262,13 +262,12 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
-            distance.encode(new_constraints)
-            #is_drup = False
+            distance.unary_encode(new_constraints)
 
         distance = Distance_LEQ.Collection.get(-l, None)
         if distance is not None:
-            distance.encode(new_constraints)
-            #is_drup = False
+            distance.unary_encode(new_constraints)
+
 
     if block_process:
         return [orig_lemma], is_drup
@@ -338,9 +337,9 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                         buffer.clear()
                         print(processed)
 
-            if len(new_constraints.content) > new_constraints.cap:
+            if len(new_constraints.content) > new_constraints.cap and is_drup:
                 new_constraints.flush()
-                cache_rest()
+
 
         return proofs
 
