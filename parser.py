@@ -250,7 +250,9 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
-                reach.encode_with_hint(orig_lemma[1:], False, constraints)
+                hint = sorted(orig_lemma)[:-1]
+                reach.encode_with_hint(hint, True, new_constraints)
+                #assert is_rat(constraints + new_constraints + global_inv + [[-l] for l in orig_lemma])
                 #reach.encode(new_constraints)
             else:
                 reach.encode(new_constraints)
@@ -258,8 +260,9 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
-                reach.encode_with_hint(orig_lemma[1:], False, constraints)
-                #reach.encode(new_constraints)
+                hint = sorted(orig_lemma)[1:]
+                reach.encode_with_hint(hint, False, new_constraints)
+                #assert is_rat(constraints+new_constraints+global_inv + [[-l] for l in orig_lemma])
             else:
                 reach.encode(new_constraints)
 

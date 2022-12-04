@@ -12,6 +12,12 @@ def on_cut(edge, cut, is_edge_lit):
         return edge in cut
 
 
+def on_path(edge, cut, is_edge_lit):
+    if is_edge_lit:
+        return -edge.lit in cut
+    else:
+        return edge in cut
+
 def update_max_distance(max_distance, node, cur_dis):
     max_dis = max_distance.get(node, 0)
     if cur_dis > max_dis:
@@ -102,29 +108,32 @@ class Reachability():
     def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
         # then the hint is the path from src to the sink
         #current_node = self.src
+        is_edge_lit = False
+        for i in path:
+            is_edge_lit = isinstance(i, int)
+            break
+
         explored = set()
         exploring = [self.src]
         while len(exploring) != 0:
             current_node = exploring.pop(0)
             if current_node in explored:
                 continue
+            explored.add(current_node)
             current_reach = self.reachable[current_node]
             for next, edge in get_node(self.graph, current_node).outgoing.items():
-                if edge in path:
+                if on_path(edge, path, is_edge_lit):
                     next_reachable = self.reachable.get(next, 0)
                     if next_reachable == 0:
                         next_reachable = new_lit()
                         self.reachable[next] = next_reachable
                     constraint.append([IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
 
-                    if edge not in explored:
+                    if next not in explored:
                         exploring.append(next)
 
-            explored.add(current_node)
-            #print("{} {}".format(current_node, self.reachable[current_node]))
-
-
-
+        #assert self.sink in explored
+        #print("{} {}".format(current_node, self.reachable[current_node]))
 
         if  self.sink not in explored:
             self.reachable[self.sink] = new_lit()
