@@ -187,8 +187,10 @@ class Reachability():
             else:
                 #now analyze what is the differnce in cut
                 removed_cut = self.old_flow_cut.difference(flow_cut).union(self.old_edge_cut.difference(edge_cut))
+                added_cut = flow_cut.difference(self.old_flow_cut).union(edge_cut.difference(self.old_edge_cut))
+                delta_cut = removed_cut.union(added_cut)
                 explored, touched = self.compute_unreachable_delta(cut)
-                for e in removed_cut:
+                for e in delta_cut:
                     touched.add(e.target)
                 t_final = self.compute_unreachable_graph_by_cut_delta( constraint, touched, explored, enabling_cond)
                 constraint.append([IMPLIES(predicate, t_final, constraint)])
@@ -249,8 +251,6 @@ class Reachability():
                 for target, edge in get_node(self.graph, head).incoming.items():
                     if not on_cut(edge, cut, is_edge_lit) and target not in explored:
                         open.append(target)
-                        if edge in self.unreach_hint_old_cut:
-                            touched.add(head)
 
         return explored, touched
 
@@ -273,6 +273,8 @@ class Reachability():
                     validity_constraints.append(self.old_node_obligations[node])
 
         for node in touched:
+            if node not in explored:
+                continue
             obligation = []
             for target, edge in get_node(self.graph, node).incoming.items():
                 obligation.append(OR(-enabling_cond(edge), -get_reachable(target), constraints))
