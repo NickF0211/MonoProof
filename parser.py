@@ -234,7 +234,10 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
                     cut = process_cut_witness(mf, sup)
-                    mf.encode_with_hint(cut, False, new_constraints, dynamic= True)
+                    mf.encode_with_hint(cut, False, new_constraints, dynamic= False)
+                    # assert is_rat(new_constraints + constraints + global_inv + [[-l] for l in orig_lemma])
+                    # assert is_sat(new_constraints + constraints + global_inv)
+                    # print("checked")
                     #processed_witness.add(sup)
                     is_drup = check_pure_cut(cut[0])
                 else:
