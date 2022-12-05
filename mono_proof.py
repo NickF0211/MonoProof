@@ -53,8 +53,8 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
 
 def verify_full_proof(cnf, proof_file):
 
-    print(' '.join([drat_trim_orig_path, "-w", cnf, proof_file]))
-    process = subprocess.Popen([drat_trim_orig_path, "-w", cnf, proof_file],
+    print(' '.join([drat_trim_orig_path, cnf, proof_file, "-w"]))
+    process = subprocess.Popen([drat_trim_orig_path, cnf, proof_file, "-w"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     result = "s VERIFIED" in stdout
