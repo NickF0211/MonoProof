@@ -18,8 +18,8 @@ drat_trim_orig_path = './drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
-    print([cnf_file, proof_file, "-p", "-l", temp_file, "-T", obligation_file])
-    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-p", "-l", temp_file, "-T", obligation_file],
+    print([cnf_file, proof_file, "-p", "-w", "-l", temp_file, "-T", obligation_file])
+    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-p", "-w", "-l", temp_file, "-T", obligation_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
     print(stdout)
@@ -53,8 +53,8 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
 
 def verify_full_proof(cnf, proof_file):
 
-    print(' '.join([drat_trim_orig_path, cnf, proof_file]))
-    process = subprocess.Popen([drat_trim_orig_path, cnf, proof_file],
+    print(' '.join([drat_trim_orig_path, "-w", cnf, proof_file]))
+    process = subprocess.Popen([drat_trim_orig_path, "-w", cnf, proof_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     result = "s VERIFIED" in stdout
@@ -239,9 +239,9 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "test.gnf"
-    proof_file = "test.proof"
-    support_file = "test.support"
+    gnf = "/Users/nickfeng/monosat/examples/python/color_maze.gnf"
+    # proof_file = "test.proof"
+    # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"
     #support_file = "ti_amk52e04.support"
     #output_cnf = reextension(gnf, 'cnf', suffix="_complete")
@@ -249,16 +249,16 @@ if __name__ == "__main__":
     #verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
     #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/1-nodag-nodiff-trvs-altera_10ax048_780.gnf")
     #run_and_prove("max_flow.gnf")
-    # run_and_prove(gnf, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
-    #                                                            "-vsids-both", "-decide-theories",
-    #                                                            "-no-decide-graph-rnd",
-    #                                                            "-lazy-maxflow-decisions", "-conflict-min-cut",
-    #                                                            "-adaptive-history-clear=5"])
+    run_and_prove(gnf, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
+                                                               "-vsids-both", "-decide-theories",
+                                                               "-no-decide-graph-rnd",
+                                                               "-lazy-maxflow-decisions", "-conflict-min-cut",
+                                                               "-adaptive-history-clear=5"])
     # running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
     #                                                             "-vsids-both", "-decide-theories",
     #                                                             "-no-decide-graph-rnd",
     #                                                             "-lazy-maxflow-decisions", "-conflict-min-cut",
     #                                                             "-adaptive-history-clear=5"]
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
-    record = Record(gnf)
-    prove(gnf, proof_file, support_file=support_file, record=record)
+    # record = Record(gnf)
+    # prove(gnf, proof_file, support_file=support_file, record=record)
