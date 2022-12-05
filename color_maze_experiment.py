@@ -1,13 +1,14 @@
+import os
 import signal
 import subprocess
 from random import randint
 
-from mono_proof import Record, run_and_prove
+from mono_proof import Record, run_and_prove, reextension
 
 max_scale = 5
 
 instance_timeout = 200000
-with open("chromatic_maze.csv", 'w') as outfile:
+with open("color_maze.csv", 'w') as outfile:
     for scale in range(2, max_scale+1):
         entry_point = randint(0, scale -1)
         exit_point = randint(0, scale -1)
@@ -26,9 +27,18 @@ with open("chromatic_maze.csv", 'w') as outfile:
             outfile.write(str(record) + '\n')
         except TimeoutError:
             outfile.write("{} timeout ({} secs) \n".format(instance, instance_timeout))
-        except Exception:
+        except Exception as e:
+            print("e")
             outfile.write("{} error) \n".format(instance, instance_timeout))
         finally:
             # reset alarm
             signal.alarm(0)
+            try:
+                os.remove(reextension(instance, "proof"))
+                os.remove(reextension(instance, "support"))
+                os.remove(reextension(instance, "ecnf"))
+                os.remove(reextension(instance, "cnf"))
+                os.remove(reextension(instance, "obg"))
+            except:
+                pass
 

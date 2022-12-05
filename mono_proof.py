@@ -18,7 +18,7 @@ drat_trim_orig_path = './drat-trim-orig'
 
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
-    print([cnf_file, proof_file, "-p", "-w", "-l", temp_file, "-T", obligation_file])
+    print(' '.join([cnf_file, proof_file, "-p", "-w", "-l", temp_file, "-T", obligation_file]))
     process = subprocess.Popen([drat_path, cnf_file, proof_file, "-p", "-w", "-l", temp_file, "-T", obligation_file],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
