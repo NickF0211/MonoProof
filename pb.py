@@ -156,7 +156,8 @@ def parse_mps(filename):
                 line = file.readline()
                 continue
             elif line.startswith("min") or line.startswith("max"):
-                return False
+                line = file.readline()
+                continue
             parsing_result = parse_mps_line(line.strip())
             if parsing_result is False:
                 return [[FALSE()]]
