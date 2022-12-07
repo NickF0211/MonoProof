@@ -1,4 +1,6 @@
 # this is encoding scheme for pseudo boolean constraint constraints
+import time
+
 from bv import BV, bv_sum, bv_and, const_to_bv, GE
 from lit import new_lit, add_lit, TRUE, FALSE, write_dimacs, global_inv
 from math import gcd, ceil
@@ -24,11 +26,11 @@ class PB:
                                  self.target
                                  )
 
-    def encode(self, constraints, mono=True):
+    def encode(self, constraints, mono=True, dir_specfic = True):
         if not self.bv_init:
             self.bvs = [bv_and(const_to_bv(c), l, constraints) for c, l in zip(self.cofs, self.variables)]
 
-        return GE(bv_sum(self.bvs, constraints, mono=mono), self.target, constraints)
+        return GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic), self.target, constraints)
 
 
 def pb_normalize(cofs, lits, op, target):
@@ -167,39 +169,50 @@ def parse_mps(filename):
     return constraints
 
 
-def process_pb_mps(filename, mono=True, out_cnf=None):
+def process_pb_mps(filename, mono=True, out_cnf=None, dir_specfic = True):
     constraints = parse_mps(filename)
     if constraints is False:
         print("Uknown")
         return
 
     for pb in PB.collection:
-        constraints.append([pb.encode(constraints, mono=mono)])
+        constraints.append([pb.encode(constraints, mono=mono, dir_specfic = dir_specfic)])
 
     if not out_cnf:
-        cnf_file = reextension(filename, "cnf")
+        if mono:
+            if dir_specfic:
+                cnf_file = reextension(filename, "mscnf")
+            else:
+                cnf_file = reextension(filename, "mcnf")
+        else:
+            cnf_file = reextension(filename, "cnf")
     else:
         cnf_file = out_cnf
 
     write_dimacs(cnf_file, constraints)
-    print("CNF written to {}".format(cnf_file))
+    # print("CNF written to {}".format(cnf_file))
 
-    # if is_sat(constraints+global_inv):
-    #     print ("SAT")
-    # else:
-    #     print("UNSAT")
+    start_time = time.time()
+    if is_sat(constraints+global_inv):
+        print ("{}, SAT, time {}".format(cnf_file, time.time()-start_time))
+    else:
+        print ("{}, UNSAT, time {}".format(cnf_file, time.time()-start_time))
 
 if __name__ == "__main__":
     filename = sys.argv[1]
     mono = True
+    dir_specific = True
     if len(sys.argv) >= 3:
         mono = sys.argv[2].lower().startswith('t')
 
-    out_cnf = None
-    if len(sys.argv) >= 3:
-        out_cnf = sys.argv[3]
+    if len(sys.argv) >= 4:
+        dir_specific = sys.argv[3].lower().startswith('t')
 
-    print("filename = {} mono: {}".format(filename, mono))
-    process_pb_mps(filename, mono, out_cnf=out_cnf)
+    out_cnf = None
+    if len(sys.argv) >= 5:
+        out_cnf = sys.argv[4]
+
+    # print("filename = {} mono: {}".format(filename, mono))
+    process_pb_mps(filename, mono, out_cnf=out_cnf, dir_specfic=dir_specific)
 
 

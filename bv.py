@@ -192,7 +192,7 @@ Define addition operator that consider only the high bits of bv1 and bv2, the re
 '''
 
 
-def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
+def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = True):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
     elif bv1.width > bv2.width:
@@ -210,7 +210,7 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None):
         else:
             new_bv3 = bv3
 
-    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant)])
+    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant, forward = forward, backward = backward)])
     return bv3
 
 
@@ -675,7 +675,7 @@ def parse_const_comparsion(attributes):
     return True
 
 from sortedcontainers import SortedList
-def bv_sum(items, constraints, mono=True):
+def bv_sum(items, constraints, mono=True, is_dir_specific = True):
     # organize elements to determine summing order
 
     base_int = 0
@@ -695,7 +695,10 @@ def bv_sum(items, constraints, mono=True):
         while bv_items:
             next = bv_items.pop(0)
             if mono:
-                new_item = add_mono(cur, next, constraints)
+                if is_dir_specific:
+                    new_item = add_upper(cur, next, constraints, backward=False, forward=True)
+                else:
+                    new_item = add_mono(cur, next, constraints)
             else:
                 new_item = add(cur, next, constraints)
             bv_items.add(new_item)
