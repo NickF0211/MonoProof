@@ -9,24 +9,14 @@ if __name__ == "__main__":
     outfile = "pb_mono_{}.csv".format(test_index)
 
     instance_timeout = 1200
-    instances = glob.glob("instances{}\*.opb".format(test_index))
+    instances = glob.glob("instances{}/*.opb".format(test_index))
 
     with open(outfile, 'a') as out:
-        for ins in instances[7:]:
+        for ins in instances:
             print(ins)
             try:
                 mono_cnf = reextension(ins, "mdcnf")
                 arugment_list = ["python3", "pb.py", ins, "true"]
-                process = subprocess.Popen(arugment_list,
-                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                stdout, stderr = process.communicate(timeout=instance_timeout)
-                out.write("{}".format(stdout))
-            except subprocess.TimeoutExpired:
-                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
-
-            try:
-                mono_cnf = reextension(ins, "mcnf")
-                arugment_list = ["python3", "pb.py", ins, "true", "false"]
                 process = subprocess.Popen(arugment_list,
                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 stdout, stderr = process.communicate(timeout=instance_timeout)

@@ -169,21 +169,20 @@ def parse_mps(filename):
     return constraints
 
 
-def process_pb_mps(filename, mono=True, out_cnf=None, dir_specfic = True):
+def process_pb_mps(filename, mono=True, out_cnf=None):
     constraints = parse_mps(filename)
     if constraints is False:
         print("Uknown")
         return
 
     for pb in PB.collection:
-        constraints.append([pb.encode(constraints, mono=mono, dir_specfic = dir_specfic)])
+        constraints.append([pb.encode(constraints, mono=False)])
+        if mono:
+            constraints.append([pb.encode(constraints, mono=mono, dir_specfic = True)])
 
     if not out_cnf:
         if mono:
-            if dir_specfic:
-                cnf_file = reextension(filename, "mscnf")
-            else:
-                cnf_file = reextension(filename, "mcnf")
+            cnf_file = reextension(filename, "mcnf")
         else:
             cnf_file = reextension(filename, "cnf")
     else:
@@ -205,14 +204,11 @@ if __name__ == "__main__":
     if len(sys.argv) >= 3:
         mono = sys.argv[2].lower().startswith('t')
 
-    if len(sys.argv) >= 4:
-        dir_specific = sys.argv[3].lower().startswith('t')
-
     out_cnf = None
-    if len(sys.argv) >= 5:
-        out_cnf = sys.argv[4]
+    if len(sys.argv) >= 4:
+        out_cnf = sys.argv[3]
 
     # print("filename = {} mono: {}".format(filename, mono))
-    process_pb_mps(filename, mono, out_cnf=out_cnf, dir_specfic=dir_specific)
+    process_pb_mps(filename, mono, out_cnf=out_cnf)
 
 
