@@ -14,15 +14,6 @@ if __name__ == "__main__":
     with open(outfile, 'a') as out:
         for ins in instances:
             print(ins)
-            try:
-                mono_cnf = reextension(ins, "mdcnf")
-                arugment_list = ["python3", "pb.py", ins, "true"]
-                process = subprocess.Popen(arugment_list,
-                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                stdout, stderr = process.communicate(timeout=instance_timeout)
-                out.write("{}".format(stdout))
-            except subprocess.TimeoutExpired:
-                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
 
             try:
                 non_mono_cnf = reextension(ins, "cnf")
@@ -33,6 +24,18 @@ if __name__ == "__main__":
                 out.write("{} \n".format(stdout))
             except subprocess.TimeoutExpired:
                 out.write("{}, Timeout, {}\n".format(mono_cnf, -1))
+
+            try:
+                mono_cnf = reextension(ins, "mdcnf")
+                arugment_list = ["python3", "pb.py", ins, "true"]
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=instance_timeout)
+                out.write("{}".format(stdout))
+            except subprocess.TimeoutExpired:
+                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
+
+
 
             out.flush()
 

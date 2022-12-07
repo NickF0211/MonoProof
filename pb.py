@@ -176,9 +176,10 @@ def process_pb_mps(filename, mono=True, out_cnf=None):
         return
 
     for pb in PB.collection:
-        constraints.append([pb.encode(constraints, mono=False)])
         if mono:
-            constraints.append([pb.encode(constraints, mono=mono, dir_specfic = True)])
+            constraints.append([pb.encode(constraints, mono=True, dir_specfic = True)])
+        else:
+            constraints.append([pb.encode(constraints, mono=False)])
 
     if not out_cnf:
         if mono:
