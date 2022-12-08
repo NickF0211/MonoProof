@@ -73,6 +73,9 @@ def g_AND(var_body, constraints=global_inv, forward=True, backward=True):
     init = TRUE()
     if var_body == []:
         return TRUE()
+
+    var_body = sorted(var_body)
+
     for var in var_body:
         init = AND(init, var, constraints, forward=forward, backward=backward)
 
