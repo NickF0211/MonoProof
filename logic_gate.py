@@ -70,6 +70,9 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
     return predicate_lit
 
 def g_AND(var_body, constraints=global_inv, forward=True, backward=True):
+    if FALSE() in var_body:
+        return FALSE()
+
     init = TRUE()
     if var_body == []:
         return TRUE()
