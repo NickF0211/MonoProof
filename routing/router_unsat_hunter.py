@@ -40,12 +40,16 @@ if __name__ == "__main__":
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
             stdout, stderr = process.communicate()
             if "s UNSATISFIABLE" in stdout:
+                print("UNSAT")
                 found_unsat = True
                 total_unsat += 1
                 if total_unsat >= target_unsat_threshold:
-                    print("Done")
                     exit(20)
             else:
+                if "s SATISFIABLE" in stdout:
+                    print("SAT")
+                else:
+                    print("timeout")
                 os.remove(filename)
 
             apt += 1
