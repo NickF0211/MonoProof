@@ -284,6 +284,9 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
     except TimeoutError:
         is_sat = True
         timeout = True
+    except SolveException:
+        is_sat = True
+        timeout = True
     finally:
         signal.alarm(0)
 
@@ -308,9 +311,11 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
             except TimeoutError:
                 is_sat = True
                 timeout = True
+            except SolveException:
+                is_sat = True
+                timeout = True
             finally:
                 signal.alarm(0)
-            continue
 
         refine_iteration += 1
         to_be_blocked = set()
@@ -371,6 +376,9 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
                 signal.alarm(monosat_limit)
                 is_sat = Solve(time_limit_seconds=monosat_limit)
             except TimeoutError:
+                is_sat = True
+                timeout = True
+            except SolveException:
                 is_sat = True
                 timeout = True
             finally:
