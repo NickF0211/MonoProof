@@ -262,9 +262,9 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
         Assert(m)
         m.setDecisionPriority(-1);  # never make decisions on the maxflow predicate.
 
-    if outputFile is not None:
-        print("Wrote constraints to " + outputFile + ", exiting without solving")
-        sys.exit(0)
+    # if outputFile is not None:
+    #     print("Wrote constraints to " + outputFile + ", exiting without solving")
+    #     sys.exit(0)
 
     can_block = set([i for i in range(width*height)])
     for i,j in disabled:
@@ -280,7 +280,7 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
     timeout = False
     try:
         signal.alarm(monosat_limit)
-        is_sat = Solve(time_limit_seconds=1)
+        is_sat = Solve(time_limit_seconds=monosat_limit)
     except TimeoutError:
         is_sat = True
         timeout = True
@@ -304,7 +304,7 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
 
             try:
                 signal.alarm(monosat_limit)
-                is_sat = Solve()
+                is_sat = Solve(time_limit_seconds=monosat_limit)
             except TimeoutError:
                 is_sat = True
                 timeout = True
@@ -369,7 +369,7 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
             print("iteration {}: " .format(refine_iteration))
             try:
                 signal.alarm(monosat_limit)
-                is_sat = Solve()
+                is_sat = Solve(time_limit_seconds=monosat_limit)
             except TimeoutError:
                 is_sat = True
                 timeout = True
