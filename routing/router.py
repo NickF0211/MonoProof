@@ -23,7 +23,13 @@ from time import time
 import pcrt
 import itertools
 from random import randint, sample
+import signal
 
+def handler(signum, frame):
+    print("monosat timeout")
+    raise TimeoutError()
+
+monosat_limit = 5000
 #There are many ways to perform circuit routing using MonoSAT.
 #The approach uses just one graph, and uses a combination of MonoSAT's built-in reachability constraints to ensure
 #nets are routed, while using propositional constraints over the edges in the graph to prevent nets from intersecting.
@@ -260,11 +266,52 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
         print("Wrote constraints to " + outputFile + ", exiting without solving")
         sys.exit(0)
 
+    can_block = set([i for i in range(width*height)])
+    for i,j in disabled:
+        can_block.remove(i*width+j)
+    for i,j in net_nodes:
+        can_block.remove(i * width + j)
+
+    signal.signal(signal.SIGALRM, handler)
     constraint_ts = 10
     refine_iteration = 0
     print("start solving")
-    is_sat =  Solve(time_limit_seconds=100)
+    is_sat = False
+    timeout = False
+    try:
+        signal.alarm(monosat_limit)
+        is_sat = Solve(time_limit_seconds=1)
+    except TimeoutError:
+        is_sat = True
+        timeout = True
+    finally:
+        signal.alarm(0)
+
     while is_sat:
+        if timeout:
+            #block 10 random non terminal location
+            to_be_blocked = sample(can_block,width/2)
+            for node in to_be_blocked:
+                print(node)
+                for edge in edges[node]:
+                    Assert(~edge)
+
+            disabled += list(to_be_blocked)
+            for i, j in to_be_blocked:
+                can_block.remove(i * width + j)
+
+            to_be_blocked.clear()
+
+            try:
+                signal.alarm(monosat_limit)
+                is_sat = Solve()
+            except TimeoutError:
+                is_sat = True
+                timeout = True
+            finally:
+                signal.alarm(0)
+            continue
+
         refine_iteration += 1
         to_be_blocked = set()
         to_be_constraint = []
@@ -314,11 +361,20 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
                     Assert(~edge)
 
             disabled += list(to_be_blocked)
+            for i, j in to_be_blocked:
+                can_block.remove(i*width+j)
+
             to_be_blocked.clear()
 
             print("iteration {}: " .format(refine_iteration))
-            is_sat = Solve(time_limit_seconds=100)
-
+            try:
+                signal.alarm(monosat_limit)
+                is_sat = Solve()
+            except TimeoutError:
+                is_sat = True
+                timeout = True
+            finally:
+                signal.alarm(0)
 
     print("finally UNSAT after {} iterations".format(refine_iteration))
 
