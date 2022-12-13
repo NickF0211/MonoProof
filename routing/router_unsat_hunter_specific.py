@@ -1,7 +1,10 @@
 import glob
+import os
 import subprocess
 
-from parser import reextension
+def reextension(source, new_ext, suffix=''):
+    pre, ext = os.path.splitext(source)
+    return pre+suffix+'.'+new_ext
 
 if __name__ == "__main__":
     instances = glob.glob("instances/M_3_C_100/*.pcrt", recursive=True)
