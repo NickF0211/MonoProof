@@ -192,7 +192,7 @@ Define addition operator that consider only the high bits of bv1 and bv2, the re
 '''
 
 
-def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = True):
+def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = False):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
     elif bv1.width > bv2.width:
@@ -675,9 +675,11 @@ def parse_const_comparsion(attributes):
     return True
 
 from sortedcontainers import SortedList
-def bv_sum(items, constraints, mono=True, is_dir_specific = True):
-    # organize elements to determine summing order
+def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1):
 
+    # if smart encoding is enabled, then each bv is associated with a depth
+    bv_depth = {}
+    # organize elements to determine summing order
     base_int = 0
     bv_items = SortedList(key=lambda bv: bv.width)
     for item in items:
@@ -685,6 +687,8 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True):
             base_int += items
         elif isinstance(item, BV):
             bv_items.add(item)
+            if smart_encoding >= 0:
+                bv_depth[item] = 0
         else:
             assert False
 
@@ -694,13 +698,24 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True):
         cur = bv_items.pop(0)
         while bv_items:
             next = bv_items.pop(0)
-            if mono:
-                if is_dir_specific:
+            if smart_encoding >= 0:
+                cur_depth = bv_depth.get(cur, 0)
+                next_depth = bv_depth.get(next, 0)
+                max_depth = max(cur_depth, next_depth)
+                if max_depth > smart_encoding:
                     new_item = add_upper(cur, next, constraints, backward=False, forward=True)
                 else:
-                    new_item = add_mono(cur, next, constraints)
+                    new_item = add(cur, next, constraints)
+                bv_depth[new_item] = max_depth+1
             else:
-                new_item = add(cur, next, constraints)
+                if mono:
+                    if is_dir_specific:
+                        new_item = add_upper(cur, next, constraints, backward=False, forward=True)
+                    else:
+                        new_item = add_mono(cur, next, constraints)
+                else:
+                    new_item = add(cur, next, constraints)
+
             bv_items.add(new_item)
             cur = bv_items.pop(0)
         if base_int == 0:
