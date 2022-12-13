@@ -26,11 +26,35 @@ class PB:
                                  self.target
                                  )
 
-    def encode(self, constraints, mono=True, dir_specfic = True):
-        if not self.bv_init:
-            self.bvs = [bv_and(const_to_bv(c), l, constraints) for c, l in zip(self.cofs, self.variables)]
+    def pre_encode(self, constraint):
+        cof_sum = sum(self.cofs)
+        new_cofs = []
+        new_vars = []
+        for i in range(len(self.cofs)):
+            val = self.cofs[i]
+            lit = self.variables[i]
+            if cof_sum - val < self.target:
+                # lit has to be true
+                constraint.append([lit])
+                self.target -= val
+                # print("reduced")
+            else:
+                new_cofs.append(val)
+                new_vars.append(lit)
+        self.cofs = new_cofs
+        self.variables = new_vars
 
-        return GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic), self.target, constraints)
+    def encode(self, constraints, mono=True, dir_specfic = True, smart_encoding = -1):
+        if not self.bv_init:
+            self.pre_encode(constraints)
+            self.bvs = [bv_and(const_to_bv(c), l, constraints) for c, l in zip(self.cofs, self.variables)]
+            self.bv_init = True
+
+        if self.target <= 0:
+            return TRUE()
+        else:
+            return GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic,
+                             smart_encoding=smart_encoding), self.target, constraints)
 
 
 def pb_normalize(cofs, lits, op, target):
@@ -169,47 +193,56 @@ def parse_mps(filename):
     return constraints
 
 
-def process_pb_mps(filename, mono=True, out_cnf=None):
+def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1):
     constraints = parse_mps(filename)
     if constraints is False:
         print("Uknown")
         return
 
     for pb in PB.collection:
-        if mono:
+        if smart_encoding >= 0:
+            constraints.append([pb.encode(constraints, smart_encoding=smart_encoding)])
+        elif mono:
             constraints.append([pb.encode(constraints, mono=True, dir_specfic = True)])
         else:
             constraints.append([pb.encode(constraints, mono=False)])
 
     if not out_cnf:
-        if mono:
-            cnf_file = reextension(filename, "mcnf")
+        if smart_encoding >= 0:
+            cnf_file = reextension(filename, "{}scnf".format(smart_encoding))
         else:
-            cnf_file = reextension(filename, "cnf")
+            if mono:
+                cnf_file = reextension(filename, "mcnf")
+            else:
+                cnf_file = reextension(filename, "cnf")
     else:
         cnf_file = out_cnf
 
-    write_dimacs(cnf_file, constraints)
+    # write_dimacs(cnf_file, constraints)
     # print("CNF written to {}".format(cnf_file))
-
+    all_constraint = constraints+global_inv
     start_time = time.time()
-    if is_sat(constraints+global_inv):
-        print ("{}, SAT, time {}".format(cnf_file, time.time()-start_time))
+    if is_sat(all_constraint):
+        print ("{}, SAT, {}".format(cnf_file, time.time()-start_time))
     else:
-        print ("{}, UNSAT, time {}".format(cnf_file, time.time()-start_time))
+        print ("{}, UNSAT, {}".format(cnf_file, time.time()-start_time))
 
 if __name__ == "__main__":
     filename = sys.argv[1]
     mono = True
-    dir_specific = True
     if len(sys.argv) >= 3:
         mono = sys.argv[2].lower().startswith('t')
 
-    out_cnf = None
+    smart_encoding = -1
     if len(sys.argv) >= 4:
-        out_cnf = sys.argv[3]
+        smart_encoding = int(sys.argv[3])
+
+    out_cnf = None
+    if len(sys.argv) >= 5:
+        out_cnf = sys.argv[4]
+
 
     # print("filename = {} mono: {}".format(filename, mono))
-    process_pb_mps(filename, mono, out_cnf=out_cnf)
+    process_pb_mps(filename, mono, out_cnf=out_cnf, smart_encoding=smart_encoding)
 
 

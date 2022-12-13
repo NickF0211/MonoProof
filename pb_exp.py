@@ -26,8 +26,18 @@ if __name__ == "__main__":
                 out.write("{}, Timeout, {}\n".format(mono_cnf, -1))
 
             try:
-                mono_cnf = reextension(ins, "mdcnf")
-                arugment_list = ["python3", "pb.py", ins, "true"]
+                mono_cnf = reextension(ins, "s2cnf")
+                arugment_list = ["python3", "pb.py", ins, "true", "2"]
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=instance_timeout)
+                out.write("{}".format(stdout))
+            except subprocess.TimeoutExpired:
+                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
+
+            try:
+                mono_cnf = reextension(ins, "s3cnf")
+                arugment_list = ["python3", "pb.py", ins, "true", "3"]
                 process = subprocess.Popen(arugment_list,
                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 stdout, stderr = process.communicate(timeout=instance_timeout)
