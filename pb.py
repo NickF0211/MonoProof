@@ -4,6 +4,7 @@ import time
 from bv import BV, bv_sum, bv_and, const_to_bv, GE
 from lit import new_lit, add_lit, TRUE, FALSE, write_dimacs, global_inv
 from math import gcd, ceil
+from logic_gate import g_OR
 
 from parser import reextension
 from solver import is_sat
@@ -19,6 +20,7 @@ class PB:
         self.target = target
         self.bv_init = False
         self.bvs = []
+        self.suff = []
         PB.collection.add(self)
 
     def __str__(self):
@@ -37,10 +39,13 @@ class PB:
                 # lit has to be true
                 constraint.append([lit])
                 self.target -= val
-                # print("reduced")
             else:
-                new_cofs.append(val)
-                new_vars.append(lit)
+                if val >= self.target:
+                    self.suff.append(lit)
+                else:
+                    new_cofs.append(val)
+                    new_vars.append(lit)
+
         self.cofs = new_cofs
         self.variables = new_vars
 
@@ -53,8 +58,12 @@ class PB:
         if self.target <= 0:
             return TRUE()
         else:
-            return GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic,
-                             smart_encoding=smart_encoding, smart_finishing=smart_finishing), self.target, constraints)
+            compare_result = []
+            if self.variables:
+                compare_result.append(GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic,
+                             smart_encoding=smart_encoding, smart_finishing=smart_finishing), self.target, constraints))
+
+            return g_OR(self.suff + compare_result, constraints)
 
 
 def pb_normalize(cofs, lits, op, target):
