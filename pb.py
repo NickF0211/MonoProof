@@ -44,7 +44,7 @@ class PB:
         self.cofs = new_cofs
         self.variables = new_vars
 
-    def encode(self, constraints, mono=True, dir_specfic = True, smart_encoding = -1):
+    def encode(self, constraints, mono=True, dir_specfic = True, smart_encoding = -1, smart_finishing = False):
         if not self.bv_init:
             self.pre_encode(constraints)
             self.bvs = [bv_and(const_to_bv(c), l, constraints) for c, l in zip(self.cofs, self.variables)]
@@ -54,7 +54,7 @@ class PB:
             return TRUE()
         else:
             return GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic,
-                             smart_encoding=smart_encoding), self.target, constraints)
+                             smart_encoding=smart_encoding, smart_finishing=smart_finishing), self.target, constraints)
 
 
 def pb_normalize(cofs, lits, op, target):
@@ -193,7 +193,7 @@ def parse_mps(filename):
     return constraints
 
 
-def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1):
+def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart_finishing = False):
     constraints = parse_mps(filename)
     if constraints is False:
         print("Uknown")
@@ -201,7 +201,7 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1):
 
     for pb in PB.collection:
         if smart_encoding >= 0:
-            constraints.append([pb.encode(constraints, smart_encoding=smart_encoding)])
+            constraints.append([pb.encode(constraints, smart_encoding=smart_encoding, smart_finishing = smart_finishing)])
         elif mono:
             constraints.append([pb.encode(constraints, mono=True, dir_specfic = True)])
         else:
@@ -209,7 +209,10 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1):
 
     if not out_cnf:
         if smart_encoding >= 0:
-            cnf_file = reextension(filename, "{}scnf".format(smart_encoding))
+            if smart_finishing:
+                cnf_file = reextension(filename, "{}sfcnf".format(smart_encoding))
+            else:
+                cnf_file = reextension(filename, "{}scnf".format(smart_encoding))
         else:
             if mono:
                 cnf_file = reextension(filename, "mcnf")
@@ -237,12 +240,18 @@ if __name__ == "__main__":
     if len(sys.argv) >= 4:
         smart_encoding = int(sys.argv[3])
 
-    out_cnf = None
+    smart_finishing = False
     if len(sys.argv) >= 5:
-        out_cnf = sys.argv[4]
+        smart_finishing = sys.argv[4].lower().startswith('t')
+
+    out_cnf = None
+    if len(sys.argv) >= 6:
+        out_cnf = sys.argv[5]
+
+
 
 
     # print("filename = {} mono: {}".format(filename, mono))
-    process_pb_mps(filename, mono, out_cnf=out_cnf, smart_encoding=smart_encoding)
+    process_pb_mps(filename, mono, out_cnf=out_cnf, smart_encoding=smart_encoding, smart_finishing=smart_finishing)
 
 

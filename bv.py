@@ -675,7 +675,7 @@ def parse_const_comparsion(attributes):
     return True
 
 from sortedcontainers import SortedList
-def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1):
+def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1, smart_finishing = True):
 
     # if smart encoding is enabled, then each bv is associated with a depth
     bv_depth = {}
@@ -702,7 +702,7 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding
                 cur_depth = bv_depth.get(cur, 0)
                 next_depth = bv_depth.get(next, 0)
                 max_depth = max(cur_depth, next_depth)
-                if max_depth > smart_encoding:
+                if max_depth > smart_encoding or (smart_finishing and len(bv_items) <= 1):
                     new_item = add_upper(cur, next, constraints, backward=False, forward=True)
                 else:
                     new_item = add(cur, next, constraints)
