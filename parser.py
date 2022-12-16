@@ -179,7 +179,7 @@ def check_pure_cut(cuts):
             return False
     return True
 
-large_graph_edge_thresh_hold = 10
+large_graph_edge_thresh_hold = 3000
 
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
     #now scan the list, and check what has to be done
@@ -252,17 +252,24 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
                 hint = sorted(orig_lemma)[:-1]
                 reach.encode_with_hint(hint, True, new_constraints)
-                #assert is_rat(constraints + new_constraints + global_inv + [[-l] for l in orig_lemma])
+                # assert is_rat(constraints + new_constraints + global_inv + [[-l] for l in orig_lemma])
+                # assert is_sat(constraints + new_constraints + global_inv)
                 #reach.encode(new_constraints)
             else:
                 reach.encode(new_constraints)
 
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
-            if len(reach.graph.edges) > large_graph_edge_thresh_hold:
+            if witness_reduction:
+                threshold = 100
+            else:
+                threshold = large_graph_edge_thresh_hold
+
+            if len(reach.graph.edges) > threshold:
                 hint = sorted(orig_lemma)[1:]
-                reach.encode_with_hint(hint, False, new_constraints)
+                reach.encode_with_hint(hint, False, new_constraints, force_distance = not witness_reduction)
                 #assert is_rat(constraints+new_constraints+global_inv + [[-l] for l in orig_lemma])
+                # assert is_sat(constraints+new_constraints+global_inv)
             else:
                 reach.encode(new_constraints)
 
