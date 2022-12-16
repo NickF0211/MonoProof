@@ -82,6 +82,8 @@ def pb_normalize(cofs, lits, op, target):
         n_cofs = [-c for c in n_cofs]
         n_target = -n_target
 
+    assert n_op == ">="
+
     # pass 2: Negative coefficients are eliminated by changing p into ¬p and updating the RHS.
     new_cofs = []
     new_lits = []
@@ -171,14 +173,30 @@ def parse_mps_line(line: str):
 
     op = tokens[-3]
     target = int(tokens[-2])
-    res = pb_normalize(cofs, lits, op, target)
-    if res is True:
-        return True
-    elif res is False:
-        return False
+
+    if op == "=":
+        res1 = pb_normalize(cofs, lits, ">=", target)
+        res2 = pb_normalize(cofs, lits, "<=", target)
+        if res1 is False or res2 is False:
+            return False
+        else:
+            if res1 is not True:
+                cofs, lits, op, target = res1
+                PB(lits, cofs, target)
+            if res2 is not True:
+                cofs, lits, op, target = res2
+                PB(lits, cofs, target)
+            return True
+
     else:
-        cofs, lits, op, target = res
-        return PB(lits, cofs, target)
+        res = pb_normalize(cofs, lits, op, target)
+        if res is True:
+            return True
+        elif res is False:
+            return False
+        else:
+            cofs, lits, op, target = res
+            return PB(lits, cofs, target)
 
 
 def parse_mps(filename):
