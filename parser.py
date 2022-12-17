@@ -44,7 +44,7 @@ def parse_header(attributes):
     add_lit(int(lits))
     return True
 
-ignore_list = ["solve", "node"]
+ignore_list = ["solve", "node", "symbol"]
 def parse_line(line, cnfs):
     if not line.strip():
         # if there are formatting issue  with the line, skip
@@ -98,6 +98,13 @@ def parse_line(line, cnfs):
             return True
         elif header == "acyclic":
             return parse_acyclic(line_token[1:])
+        elif header == "amo":
+            # at most one, expand on the spot
+            # amo 1374 1592 1620 1636 1659 1719 1753 0
+            target_lits = [add_lit(int(i)) for i in line_token[1: -1]]
+            for i in range(len(target_lits)):
+                for j in range(i+1, len(target_lits)):
+                    cnfs.append([-target_lits[i], -target_lits[j]])
         else:
             assert False
 
@@ -447,3 +454,4 @@ if model:
 else:
     print(get_proof(cnfs + global_inv, optimize=True))
 '''
+parse_line("amo 1374 1592 1620 1636 1659 1719 1753 0", [])
