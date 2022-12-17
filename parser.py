@@ -454,4 +454,3 @@ if model:
 else:
     print(get_proof(cnfs + global_inv, optimize=True))
 '''
-parse_line("amo 1374 1592 1620 1636 1659 1719 1753 0", [])
