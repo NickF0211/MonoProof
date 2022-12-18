@@ -1,4 +1,4 @@
-from pysat.solvers import Cadical, Lingeling
+from pysat.solvers import Cadical, Lingeling, Minisat22, Maplesat
 from logic_gate import OR, g_OR, g_AND
 from lit import write_proofs, write_dimacs
 import subprocess
