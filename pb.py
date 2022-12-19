@@ -1,7 +1,7 @@
 # this is encoding scheme for pseudo boolean constraint constraints
 import time
 
-from bv import BV, bv_sum, bv_and, const_to_bv, GE
+from bv import BV, bv_sum, bv_and, const_to_bv, GE, N_to_bit_array
 from lit import new_lit, add_lit, TRUE, FALSE, write_dimacs, global_inv
 from math import gcd, ceil
 from logic_gate import g_OR
@@ -49,7 +49,7 @@ class PB:
         self.cofs = new_cofs
         self.variables = new_vars
 
-    def encode(self, constraints, mono=True, dir_specfic = True, smart_encoding = -1, smart_finishing = False):
+    def encode(self, constraints, mono=True, dir_specfic = True, smart_encoding = -1, smart_finishing = False, duo = False):
         if not self.bv_init:
             self.pre_encode(constraints)
             self.bvs = [bv_and(const_to_bv(c), l, constraints) for c, l in zip(self.cofs, self.variables)]
@@ -59,9 +59,10 @@ class PB:
             return TRUE()
         else:
             compare_result = []
+            cap = len(N_to_bit_array(self.target)) + 1
             if self.variables:
                 compare_result.append(GE(bv_sum(self.bvs, constraints, mono=mono, is_dir_specific=dir_specfic,
-                             smart_encoding=smart_encoding, smart_finishing=smart_finishing), self.target, constraints))
+                             smart_encoding=smart_encoding, smart_finishing=smart_finishing, duo=duo, upper_bound = cap), self.target, constraints))
 
             return g_OR(self.suff + compare_result, constraints)
 
@@ -220,7 +221,7 @@ def parse_mps(filename):
     return constraints
 
 
-def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart_finishing = False):
+def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart_finishing = False, duo=False):
     constraints = parse_mps(filename)
     if constraints is False:
         print("Uknown")
@@ -232,7 +233,7 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart
         elif mono:
             constraints.append([pb.encode(constraints, mono=True, dir_specfic = True)])
         else:
-            constraints.append([pb.encode(constraints, mono=False)])
+            constraints.append([pb.encode(constraints, mono=False, duo=duo)])
 
     if not out_cnf:
         if smart_encoding >= 0:
@@ -244,7 +245,10 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart
             if mono:
                 cnf_file = reextension(filename, "mcnf")
             else:
-                cnf_file = reextension(filename, "cnf")
+                if duo:
+                    cnf_file = reextension(filename, "dcnf")
+                else:
+                    cnf_file = reextension(filename, "cnf")
     else:
         cnf_file = out_cnf
 
@@ -260,8 +264,10 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding = -1, smart
 if __name__ == "__main__":
     filename = sys.argv[1]
     mono = True
+    duo = False
     if len(sys.argv) >= 3:
         mono = sys.argv[2].lower().startswith('t')
+        duo = sys.argv[2].lower().startswith('d')
 
     smart_encoding = -1
     if len(sys.argv) >= 4:
@@ -279,6 +285,7 @@ if __name__ == "__main__":
 
 
     # print("filename = {} mono: {}".format(filename, mono))
-    process_pb_mps(filename, mono, out_cnf=out_cnf, smart_encoding=smart_encoding, smart_finishing=smart_finishing)
+    process_pb_mps(filename, mono, out_cnf=out_cnf, smart_encoding=smart_encoding, smart_finishing=smart_finishing,
+                   duo=duo)
 
 

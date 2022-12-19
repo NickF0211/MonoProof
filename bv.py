@@ -192,14 +192,17 @@ Define addition operator that consider only the high bits of bv1 and bv2, the re
 '''
 
 
-def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = False):
+def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = False, upper_bound = -1):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
     elif bv1.width > bv2.width:
         bv2.self_extend(bv1.width - bv2.width)
     assert bv1.width == bv2.width
     if bv3 is None:
-        bv3 = new_bv(bv1.width + 1)
+        if upper_bound >= 0:
+            bv3 = new_bv(min(bv1.width + 1, upper_bound))
+        else:
+            bv3 = new_bv(bv1.width + 1)
         new_bv3 = bv3
     else:
         diff = (bv1.width + 1) - bv3.width
@@ -210,7 +213,21 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backwar
         else:
             new_bv3 = bv3
 
-    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant, forward = forward, backward = backward)])
+    except_lit = FALSE()
+    if upper_bound > 0:
+        except_lits = []
+        if bv1.width + 1 > upper_bound:
+            except_lits += [bv1.get_var(i) for i in range(bv1.width - upper_bound + 1 )]
+            bv1 = sub_bv(bv1, bv1.width - (upper_bound - 1), bv1.width)
+        if bv2.width + 1 > upper_bound:
+            except_lits += [bv2.get_var(i) for i in range(bv2.width - upper_bound + 1)]
+            bv2 = sub_bv(bv2, bv2.width - (upper_bound - 1), bv2.width)
+        if bv3.width > upper_bound:
+            new_bv3 = sub_bv(bv3, bv3.width - upper_bound , bv3.width)
+        except_lit = g_OR(except_lits, constriant, backward=forward, forward=backward)
+
+    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant, forward = forward, backward = backward,
+                                  over_flows = except_lit )])
     return bv3
 
 
@@ -377,7 +394,7 @@ def _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i, constraint, sto
             return result
 
 
-def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False):
+def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False, over_flows = FALSE()):
     index = bv1.width
     t_AND = lambda a, b, constraint: AND(a, b, constraint, forward=forward, backward=backward)
     t_OR = lambda a, b, constraint: OR(a, b, constraint, forward=forward, backward=backward)
@@ -405,7 +422,7 @@ def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=Fals
         rules.append(IMPLIES(neither_bit, OR(-bit3, accepted_condition, constraint), constraint, forward=False))
 
     accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, 0, constraint, storage=cache_storage)
-    rules.append(OR(-bv3.get_var(0), accepted_condition, constraint, forward=False))
+    rules.append(OR(-bv3.get_var(0), OR(accepted_condition, over_flows, constraint, forward=False), constraint, forward=False))
 
     res = g_AND(rules, constraint, forward=False)
     return res
@@ -675,7 +692,8 @@ def parse_const_comparsion(attributes):
     return True
 
 from sortedcontainers import SortedList
-def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1, smart_finishing = True):
+def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1,
+           smart_finishing = False, duo = False, upper_bound =-1):
 
     # if smart encoding is enabled, then each bv is associated with a depth
     bv_depth = {}
@@ -703,18 +721,22 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding
                 next_depth = bv_depth.get(next, 0)
                 max_depth = max(cur_depth, next_depth)
                 if max_depth > smart_encoding or (smart_finishing and len(bv_items) <= 1):
-                    new_item = add_upper(cur, next, constraints, backward=False, forward=True)
+                    new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
                 else:
                     new_item = add(cur, next, constraints)
                 bv_depth[new_item] = max_depth+1
             else:
                 if mono:
                     if is_dir_specific:
-                        new_item = add_upper(cur, next, constraints, backward=False, forward=True)
+                        new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
                     else:
                         new_item = add_mono(cur, next, constraints)
                 else:
-                    new_item = add(cur, next, constraints)
+                    if duo:
+                        new_item = add(cur, next, constraints)
+                        new_item = add_upper(cur, next, constraints, bv3= new_item, backward=False, forward=True, upper_bound=upper_bound)
+                    else:
+                        new_item = add(cur, next, constraints)
 
             bv_items.add(new_item)
             cur = bv_items.pop(0)
