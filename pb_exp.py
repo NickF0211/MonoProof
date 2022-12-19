@@ -9,7 +9,7 @@ if __name__ == "__main__":
     outfile = "pb_mono_s_big_{}.csv".format(test_index)
 
     instance_timeout = 1800
-    instances = glob.glob("instances{}/*.opb".format(test_index))
+    instances = glob.glob("ins{}/*.opb".format(test_index))
 
     with open(outfile, 'w') as out:
         for ins in instances:
@@ -23,29 +23,47 @@ if __name__ == "__main__":
                 stdout, stderr = process.communicate(timeout=instance_timeout)
                 out.write("{}".format(stdout))
             except subprocess.TimeoutExpired:
-                out.write("{}, Timeout, {}".format(non_mono_cnf, -1))
+                out.write("{}, Timeout, {}\n".format(non_mono_cnf, -1))
+
+            try:
+                mono_cnf = reextension(ins, "mcnf")
+                arugment_list = ["python3", "pb.py", ins, "true"]
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=instance_timeout)
+                out.write("{}".format(stdout))
+            except subprocess.TimeoutExpired:
+                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
+
+            try:
+                mono_cnf = reextension(ins, "s0cnf")
+                arugment_list = ["python3", "pb.py", ins, "t", "0"]
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=instance_timeout)
+                out.write("{}".format(stdout))
+            except subprocess.TimeoutExpired:
+                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
+
+            try:
+                mono_cnf = reextension(ins, "s1cnf")
+                arugment_list = ["python3", "pb.py", ins, "t", "1"]
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=instance_timeout)
+                out.write("{}".format(stdout))
+            except subprocess.TimeoutExpired:
+                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
 
             try:
                 mono_cnf = reextension(ins, "s2cnf")
-                arugment_list = ["python3", "pb.py", ins, "true", "2"]
+                arugment_list = ["python3", "pb.py", ins, "t", "2"]
                 process = subprocess.Popen(arugment_list,
                                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                 stdout, stderr = process.communicate(timeout=instance_timeout)
                 out.write("{}".format(stdout))
             except subprocess.TimeoutExpired:
                 out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
-
-            try:
-                mono_cnf = reextension(ins, "sf2cnf")
-                arugment_list = ["python3", "pb.py", ins, "true", "2", "true"]
-                process = subprocess.Popen(arugment_list,
-                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                stdout, stderr = process.communicate(timeout=instance_timeout)
-                out.write("{}".format(stdout))
-            except subprocess.TimeoutExpired:
-                out.write("{}, Timeout, {} \n".format(mono_cnf, -1))
-
-
 
             out.flush()
 
