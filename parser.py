@@ -105,6 +105,7 @@ def parse_line(line, cnfs):
             for i in range(len(target_lits)):
                 for j in range(i+1, len(target_lits)):
                     cnfs.append([-target_lits[i], -target_lits[j]])
+            return True
         else:
             assert False
 
