@@ -1,54 +1,23 @@
-import glob
-import os
-import signal
-import subprocess
+import os.path
 import sys
 
-from mono_proof import Record, run_and_prove
-from parser import reextension
-
-def signal_handler(signum, frame):
-    if signum == signal.SIGALRM:
-        print("timeout {}".format(frame))
-        raise TimeoutError
+from mono_proof import run_and_prove, reset, Record
+from glob import glob
 
 if __name__ == "__main__":
-    test_index = sys.argv[1]
-    outfile = "reach_{}.csv".format(test_index)
+    input_directory = sys.argv[1]
+    output_csv = sys.argv[2]
 
-    instance_timeout = 20000
-    instances = glob.glob("rech_benchmark/ins{}/*.gnf".format(test_index))
-
-    with open(outfile, 'w') as outfile:
-        for ins in instances:
-            record = Record(ins)
-            # set timeout for three hours
-            signal.alarm(instance_timeout)
+    test_files = glob(f"{input_directory}/**/*.gnf", recursive=True)
+    with open(output_csv, 'w') as o_file:
+        r = Record("test")
+        o_file.write("{}\n".format(r.print_header()))
+        for file in test_files:
+            print(file)
+            r = Record(os.path.basename(file))
             try:
-                res = run_and_prove(ins, record,
-                                    running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
-                                                 "-no-decide-theories",
-                                                 "-vsids-both", "-decide-theories",
-                                                 "-no-decide-graph-rnd",
-                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                 "-adaptive-history-clear=5"], witness_reduction=True)
-                outfile.write(str(record) + '\n')
-            except TimeoutError:
-                outfile.write("{} timeout ({} secs) \n".format(instances, instance_timeout))
-            except Exception as e:
-                print(e)
-                outfile.write("{} error) \n".format(instances, instance_timeout))
-            finally:
-                # reset alarm
-                signal.alarm(0)
-                try:
-                    os.remove(reextension(ins, "proof"))
-                    os.remove(reextension(ins, "support"))
-                    os.remove(reextension(ins, "ecnf"))
-                    os.remove(reextension(ins, "cnf"))
-                    os.remove(reextension(ins, "obg"))
-                except:
-                    pass
-
-
-
+                run_and_prove(file, r, witness_reduction=False)
+            except:
+                pass
+            o_file.write("{}\n".format(r.__str__()))
+            reset()
