@@ -20,11 +20,17 @@ def parse_edge_bv(attributes):
 def parse_file(file_name):
     with open(file_name, 'r') as file:
         cnfs = []
+        solve_counter = 0
         while True:
             line = file.readline()
             if line:
                 if not parse_line(line, cnfs):
                     assert False
+                else:
+                    if line.startswith("solve"):
+                        solve_counter += 1
+                        if solve_counter > 1:
+                            print("incremental solving mode is not supported")
             else:
                 return cnfs
 
@@ -44,7 +50,7 @@ def parse_header(attributes):
     add_lit(int(lits))
     return True
 
-ignore_list = ["solve", "node", "symbol"]
+ignore_list = ["node", "symbol"]
 def parse_line(line, cnfs):
     if not line.strip():
         # if there are formatting issue  with the line, skip
@@ -105,6 +111,11 @@ def parse_line(line, cnfs):
             for i in range(len(target_lits)):
                 for j in range(i+1, len(target_lits)):
                     cnfs.append([-target_lits[i], -target_lits[j]])
+            return True
+        elif header == "solve":
+            target_lits = [add_lit(int(i))for i in line_token[1:]]
+            for l in target_lits:
+                cnfs.append([l])
             return True
         else:
             assert False
