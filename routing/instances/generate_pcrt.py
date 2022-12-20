@@ -15,7 +15,7 @@ def make_pcrt(f, N, M, C, seed):
     f.write("G %d %d\n"%(width,height))
     used = set()
 
-    def newPoint(used,shareXY=None):
+    def newPoint(used,shareXY=None, add_to_use = True):
         if shareXY is None:
             x1 = random.randint(0, width - 1)
             y1 = random.randint(0, height - 1)
@@ -40,7 +40,8 @@ def make_pcrt(f, N, M, C, seed):
                     x1 = random.randint(0, width - 1)
                     y1 = shareXY[1]
 
-        used.add((x1, y1))
+        if add_to_use:
+            used.add((x1, y1))
         return (x1,y1)
 
     def toInt(x,y):
@@ -58,9 +59,11 @@ def make_pcrt(f, N, M, C, seed):
         f.write("N %d %d\n"%(toInt(x1,y1),toInt(x2,y2)))
 
     V = (N*M)^2
-    for i in range((C*V)//100):
-        x1,y1 = newPoint(used)
-        x2, y2 = newPoint(used,(x1,y1))
+    c_num = C
+    print(c_num)
+    for i in range(c_num):
+        x1,y1 = newPoint(used, add_to_use=False)
+        x2, y2 = newPoint(used,(x1,y1), add_to_use=False)
         f.write("C %d %d\n" % (toInt(x1, y1), toInt(x2, y2)))
 
     f.close()
