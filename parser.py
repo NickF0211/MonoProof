@@ -50,7 +50,7 @@ def parse_header(attributes):
     add_lit(int(lits))
     return True
 
-ignore_list = ["node", "symbol"]
+ignore_list = ["node", "symbol", "priority"]
 def parse_line(line, cnfs):
     if not line.strip():
         # if there are formatting issue  with the line, skip
@@ -118,6 +118,7 @@ def parse_line(line, cnfs):
                 cnfs.append([l])
             return True
         else:
+            print(line)
             assert False
 
 def parse_support(support_file):
