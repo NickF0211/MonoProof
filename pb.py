@@ -41,15 +41,15 @@ class PB:
                 if res:
                     res.remove(self)
 
-        self.variables = []
-        self.cofs = []
-        self.target = 0
-        self.bv_init = False
-        self.bvs = []
-        self.suff = []
-        self.amo = None
-        self.is_pb_sat = True
-        self.is_sat = True
+        # self.variables = []
+        # self.cofs = []
+        # self.target = 0
+        # self.bv_init = False
+        # self.bvs = []
+        # self.suff = []
+        # self.amo = None
+        # self.is_pb_sat = True
+        # self.is_sat = True
 
     def __str__(self):
         return "{} >= {}".format(' + '.join(["{} * v:{}".format(c, l) for l, c in zip(self.variables, self.cofs)]),
@@ -389,11 +389,11 @@ def binary_resolution(lits_to_pb):
                 if new_pb is False:
                     return -1
                 else:
-                    #pb.invalidate(lits_to_pb)
+                    pb.invalidate(lits_to_pb)
                     if isinstance(new_pb, PB):
                         new_pb.register_lits(lits_to_pb)
 
-            #cur_pb.invalidate(lits_to_pb)
+            cur_pb.invalidate(lits_to_pb)
             resolved = True
     if resolved:
         return 1
@@ -650,18 +650,17 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding=-1, smart_f
         cnf_file = out_cnf
 
     preprocess_start = time.time()
-
     lit_to_pbs = register_pbs()
     res_result = binary_resolution(lit_to_pbs)
     if res_result < 0:
         print("{}, UNSAT, resolution. {} ".format(cnf_file, time.time() - preprocess_start))
         return
 
+    lit_to_pbs = register_pbs()
     p_result = propagation(lit_to_pbs, constraints)
     if p_result < 0:
         print("{}, UNSAT, propagation, {}".format(cnf_file, time.time() - preprocess_start))
         return
-
     preprocess_time= time.time() - preprocess_start
 
 
