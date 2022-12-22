@@ -389,11 +389,11 @@ def binary_resolution(lits_to_pb):
                 if new_pb is False:
                     return -1
                 else:
-                    pb.invalidate(lits_to_pb)
+                    #pb.invalidate(lits_to_pb)
                     if isinstance(new_pb, PB):
                         new_pb.register_lits(lits_to_pb)
 
-            cur_pb.invalidate(lits_to_pb)
+            #cur_pb.invalidate(lits_to_pb)
             resolved = True
     if resolved:
         return 1
@@ -649,18 +649,21 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding=-1, smart_f
     else:
         cnf_file = out_cnf
 
-    should_continue = True
-    while should_continue:
-        lit_to_pbs = register_pbs()
-        res_result = binary_resolution(lit_to_pbs)
-        if res_result < 0:
-            print("{}, UNSAT, resolution".format(cnf_file))
-            return
-        p_result = propagation(lit_to_pbs, constraints)
-        if p_result < 0:
-            print("{}, UNSAT, propagation".format(cnf_file))
-            return
-        should_continue = res_result > 0 or p_result > 0
+    preprocess_start = time.time()
+
+    lit_to_pbs = register_pbs()
+    res_result = binary_resolution(lit_to_pbs)
+    if res_result < 0:
+        print("{}, UNSAT, resolution. {} ".format(cnf_file, time.time() - preprocess_start))
+        return
+
+    p_result = propagation(lit_to_pbs, constraints)
+    if p_result < 0:
+        print("{}, UNSAT, propagation, {}".format(cnf_file, time.time() - preprocess_start))
+        return
+
+    preprocess_time= time.time() - preprocess_start
+
 
     for pb in PB.collection:
         if smart_encoding >= 0:
@@ -679,9 +682,9 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding=-1, smart_f
     all_constraint = constraints + global_inv
     start_time = time.time()
     if is_sat(all_constraint):
-        print("{}, SAT, {}".format(cnf_file, time.time() - start_time))
+        print("{}, SAT, {}, {}".format(cnf_file, time.time() - start_time, preprocess_time))
     else:
-        print("{}, UNSAT, {}".format(cnf_file, time.time() - start_time))
+        print("{}, UNSAT, {}, {}".format(cnf_file, time.time() - start_time, preprocess_time))
 
 
 def lcm(a, b):
