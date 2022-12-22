@@ -693,60 +693,83 @@ def parse_const_comparsion(attributes):
 
 from sortedcontainers import SortedList
 def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1,
-           smart_finishing = False, duo = False, upper_bound =-1):
-
-    # if smart encoding is enabled, then each bv is associated with a depth
-    bv_depth = {}
-    # organize elements to determine summing order
-    base_int = 0
-    bv_items = SortedList(key=lambda bv: bv.width)
-    for item in items:
-        if isinstance(item, int):
-            base_int += items
-        elif isinstance(item, BV):
-            bv_items.add(item)
-            if smart_encoding >= 0:
-                bv_depth[item] = 0
-        else:
-            assert False
-
-    if not bv_items:
-        return base_int
-    else:
-        cur = bv_items.pop(0)
-        while bv_items:
-            next = bv_items.pop(0)
-            if smart_encoding >= 0:
-                cur_depth = bv_depth.get(cur, 0)
-                next_depth = bv_depth.get(next, 0)
-                max_depth = max(cur_depth, next_depth)
-                if max_depth > smart_encoding or (smart_finishing and len(bv_items) <= 1):
-                    new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+           smart_finishing = False, duo = False, upper_bound =-1, linear = False):
+    if linear:
+        if upper_bound >= 0:
+            base_int = 0
+            base_bv = const_to_bv(0)
+            reverse_item = reversed(items)
+            for item in reverse_item:
+                if isinstance(item, int):
+                    base_int += items
                 else:
-                    new_item = add(cur, next, constraints)
-                bv_depth[new_item] = max_depth+1
+                    base_bv = add_upper(base_bv, item, constraints, backward=False, forward=True, upper_bound=upper_bound)
+
+            if base_int == 0:
+                return base_bv
+            else:
+                return add_upper(base_bv, const_to_bv(base_int), constraints,
+                                 backward=False, forward=True, upper_bound=upper_bound)
+        else:
+            print("unsupported linear mode when the upper bound is not capped")
+            assert False
+    else:
+        # if smart encoding is enabled, then each bv is associated with a depth
+        bv_depth = {}
+        # organize elements to determine summing order
+        base_int = 0
+        bv_items = SortedList(key=lambda bv: bv.width)
+        for item in items:
+            if isinstance(item, int):
+                base_int += items
+            elif isinstance(item, BV):
+                bv_items.add(item)
+                if smart_encoding >= 0:
+                    bv_depth[item] = 0
+            else:
+                assert False
+
+        if not bv_items:
+            return base_int
+        else:
+            cur = bv_items.pop(0)
+            while bv_items:
+                next = bv_items.pop(0)
+                if smart_encoding >= 0:
+                    cur_depth = bv_depth.get(cur, 0)
+                    next_depth = bv_depth.get(next, 0)
+                    max_depth = max(cur_depth, next_depth)
+                    if max_depth > smart_encoding or (smart_finishing and len(bv_items) <= 1):
+                        new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                    else:
+                        new_item = add(cur, next, constraints)
+                    bv_depth[new_item] = max_depth+1
+                else:
+                    if mono:
+                        if is_dir_specific:
+                            new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                        else:
+                            new_item = add_mono(cur, next, constraints)
+                    else:
+                        if duo:
+                            new_item = add(cur, next, constraints)
+                            new_item = add_upper(cur, next, constraints, bv3= new_item, backward=False, forward=True, upper_bound=upper_bound)
+                        else:
+                            new_item = add(cur, next, constraints)
+
+                bv_items.add(new_item)
+                cur = bv_items.pop(0)
+            if base_int == 0:
+                return cur
             else:
                 if mono:
                     if is_dir_specific:
-                        new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                        return add_upper(cur, const_to_bv(base_int), constraints, backward=False, forward=True,
+                                             upper_bound=upper_bound)
                     else:
-                        new_item = add_mono(cur, next, constraints)
+                        return  add_mono(cur, const_to_bv(base_int), constraints)
                 else:
-                    if duo:
-                        new_item = add(cur, next, constraints)
-                        new_item = add_upper(cur, next, constraints, bv3= new_item, backward=False, forward=True, upper_bound=upper_bound)
-                    else:
-                        new_item = add(cur, next, constraints)
-
-            bv_items.add(new_item)
-            cur = bv_items.pop(0)
-        if base_int == 0:
-            return cur
-        else:
-            if mono:
-                return add_mono(cur, const_to_bv(base_int), constraints)
-            else:
-                return add(cur, const_to_bv(base_int), constraints)
+                    return add(cur, const_to_bv(base_int), constraints)
 
 def parse_comparsion(attributes):
     assert (len(attributes) == 4)
