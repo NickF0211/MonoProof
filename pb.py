@@ -8,7 +8,7 @@ from math import gcd, ceil
 from logic_gate import g_OR
 
 from parser import reextension
-from solver import is_sat
+from solver import is_sat, get_model
 import sys
 
 
@@ -28,18 +28,22 @@ class PB:
         self.is_sat = False
         PB.collection.add(self)
 
-    def invalidate(self, lits_to_pb= None):
+    def invalidate(self, lits_to_pb= None, affected = None):
         # invalidate a pb constraint
         if lits_to_pb:
             for l in self.variables:
                 res = lits_to_pb.get(l, [])
                 if res:
                     res.remove(self)
+                    if affected is not None:
+                        affected.add(l)
 
             for l in self.suff:
                 res = lits_to_pb.get(l, [])
                 if res:
                     res.remove(self)
+                    if affected is not None:
+                        affected.add(l)
 
         # self.variables = []
         # self.cofs = []
@@ -55,6 +59,22 @@ class PB:
         return "{} >= {}".format(' + '.join(["{} * v:{}".format(c, l) for l, c in zip(self.variables, self.cofs)]),
                                  self.target
                                  )
+
+    def validate(self, model):
+        if self.is_sat:
+            return True
+        else:
+            for l in self.suff:
+                if l in model:
+                    return True
+
+            cur_sum = 0
+            for i in range(len(self.cofs)):
+                cof = self.cofs[i]
+                lit = self.variables[i]
+                if lit in model:
+                    cur_sum += cof
+            return cur_sum >= self.target
 
     def build_var_to_cof(self):
         var_to_cof = {}
@@ -124,7 +144,7 @@ class PB:
         return self.amo
 
     def pre_encode(self, constraint, assumption =None):
-        if self.target <= 0:
+        if self.target <= 0 or self.is_sat:
             # the target is satisified, nothing to worry about
             return []
 
@@ -165,6 +185,8 @@ class PB:
             self.suff = new_suffix
 
         cof_sum = sum(self.cofs)
+        new_cofs = []
+        new_vars = []
         for i in range(len(self.cofs)):
             val = self.cofs[i]
             lit = self.variables[i]
@@ -387,24 +409,32 @@ def propagation(lits_to_pb, constraints):
     else:
         return 0
 
-def binary_resolution(lits_to_pb):
+def binary_resolution(lits_to_pb, rounds = -1):
     resolved = False
-    for l in lits_to_pb:
-        if len(lits_to_pb[l]) == 1:
-            # then we can resolve it away
-            cur_pb = lits_to_pb[l][0]
-            opposite = lits_to_pb.get(-l, [])
-            for pb in opposite:
-                new_pb = pb.resolve(cur_pb, -l)
-                if new_pb is False:
-                    return -1
-                else:
-                    pb.invalidate(lits_to_pb)
-                    if isinstance(new_pb, PB):
-                        new_pb.register_lits(lits_to_pb)
+    affected = lits_to_pb.keys()
+    cur_round = 0
+    derived = 0
+    while affected and (rounds < 0 or cur_round < rounds):
+        new_affected = set()
+        for l in affected:
+            if len(lits_to_pb[l]) == 1:
+                # then we can resolve it away
+                cur_pb = lits_to_pb[l][0]
+                opposite = lits_to_pb.get(-l, [])
+                for pb in opposite:
+                    new_pb = pb.resolve(cur_pb, -l)
+                    if new_pb is False:
+                        return -1
+                    else:
+                        pb.invalidate(lits_to_pb, new_affected)
+                        if isinstance(new_pb, PB):
+                            new_pb.register_lits(lits_to_pb)
+                            derived += 1
 
-            cur_pb.invalidate(lits_to_pb)
-            resolved = True
+                cur_pb.invalidate(lits_to_pb, new_affected)
+                resolved = True
+        affected = new_affected
+        cur_round += 1
     if resolved:
         return 1
     else:
@@ -690,14 +720,27 @@ def process_pb_mps(filename, mono=True, out_cnf=None, smart_encoding=-1, smart_f
     # print("CNF written to {}".format(cnf_file))
     all_constraint = constraints + global_inv
     start_time = time.time()
-    if is_sat(all_constraint):
-        print("{}, SAT, {}, {}".format(cnf_file, time.time() - start_time, preprocess_time))
+    m = get_model(all_constraint)
+    solving_time = time.time() - start_time
+    if m:
+        print("{}, SAT, {}, {}".format(cnf_file, solving_time, preprocess_time))
+        # assert check_solution(m, filename)
     else:
-        print("{}, UNSAT, {}, {}".format(cnf_file, time.time() - start_time, preprocess_time))
+        print("{}, UNSAT, {}, {}".format(cnf_file, solving_time, preprocess_time))
 
+def check_solution(model, infile):
+    PB.collection.clear()
+    parse_mps(infile)
+    model = set(model)
+    for pb in PB.collection:
+        if not pb.validate(model):
+            print(pb)
+            return False
+    return True
 
 def lcm(a, b):
     return abs(a * b) // math.gcd(a, b)
+
 
 if __name__ == "__main__":
     filename = sys.argv[1]
