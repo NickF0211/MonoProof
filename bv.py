@@ -394,7 +394,8 @@ def _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i, constraint, sto
             return result
 
 
-def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False, over_flows = FALSE()):
+def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False, over_flows = None):
+
     index = bv1.width
     t_AND = lambda a, b, constraint: AND(a, b, constraint, forward=forward, backward=backward)
     t_OR = lambda a, b, constraint: OR(a, b, constraint, forward=forward, backward=backward)
@@ -422,6 +423,8 @@ def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=Fals
         rules.append(IMPLIES(neither_bit, OR(-bit3, accepted_condition, constraint), constraint, forward=False))
 
     accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, 0, constraint, storage=cache_storage)
+    if over_flows is None:
+        over_flows = FALSE()
     rules.append(OR(-bv3.get_var(0), OR(accepted_condition, over_flows, constraint, forward=False), constraint, forward=False))
 
     res = g_AND(rules, constraint, forward=False)
