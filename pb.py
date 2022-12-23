@@ -98,7 +98,7 @@ class PB:
             else:
                 new_collection[lit] = new_collection.get(lit, 0) + lit_val
 
-        target = (self.target * l_cof) + (other.target * nl_cof) - total_sum_assumed
+        target = (self.target * self_ratio) + (other.target * other_ratio) - total_sum_assumed
         lits = list(new_collection.keys())
         cofs = [new_collection[v] for v in new_collection]
 
@@ -128,23 +128,48 @@ class PB:
             # the target is satisified, nothing to worry about
             return []
 
-        cof_sum = sum(self.cofs)
         new_cofs = []
         new_vars = []
         forced_lits = []
-        for i in range(len(self.cofs)):
-            val = self.cofs[i]
-            lit = self.variables[i]
-
-            if assumption:
+        if assumption:
+            new_cofs = []
+            new_vars = []
+            for i in range(len(self.cofs)):
+                val = self.cofs[i]
+                lit = self.variables[i]
                 if lit in assumption:
                     # if something is assumed true
                     self.target -= val
                     continue
                 if -lit in assumption:
                     continue
+                else:
+                    new_cofs.append(val)
+                    new_vars.append(lit)
+            self.cofs = new_cofs
+            self.variables = new_vars
+            new_suffix = []
 
-            if cof_sum - val < self.target:
+            for l in self.suff:
+                if l in assumption:
+                    # the pb constraint is trivially satisifed
+                    self.cofs = []
+                    self.lits = []
+                    self.suff = []
+                    self.is_sat = True
+                    return []
+                elif -l in assumption:
+                    continue
+                else:
+                    new_suffix.append(l)
+            self.suff = new_suffix
+
+        cof_sum = sum(self.cofs)
+        for i in range(len(self.cofs)):
+            val = self.cofs[i]
+            lit = self.variables[i]
+
+            if cof_sum - val < self.target and not self.suff:
                 # lit has to be true
                 constraint.append([lit])
                 forced_lits.append(lit)
@@ -160,23 +185,8 @@ class PB:
         self.variables = new_vars
         if assumption:
             if self.is_pb_sat:
-                self.is_pb_sat = sum(self.cofs) >= self.target
+                self.is_pb_sat = (sum(self.cofs) >= self.target)
 
-            new_suffix = []
-            for l in self.suff:
-                if l in assumption:
-                    # the pb constraint is trivially satisifed
-                    self.cofs = []
-                    self.lits = []
-                    self.suff = []
-                    self.is_sat = True
-                    break
-                elif -l in assumption:
-                    continue
-                else:
-                    new_suffix.append(l)
-
-            self.suff = new_suffix
             if not self.is_pb_sat and len(self.suff) == 1:
                 constraint.append([self.suff[0]])
                 forced_lits.append(self.suff[0])
