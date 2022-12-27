@@ -199,7 +199,7 @@ def check_pure_cut(cuts):
             return False
     return True
 
-large_graph_edge_thresh_hold = 3000
+large_graph_edge_thresh_hold = 30000
 
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
     #now scan the list, and check what has to be done
@@ -376,9 +376,56 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 
         return proofs
 
+def process_binary_lit(lit):
+    l1, l2, l3, l4 = lit
+    unsigned_int = l1 + (l2 << 7) + (l3 << 14) + (l4 << 21)
+    lit = unsigned_int >> 2 if unsigned_int ^ 0b1 else (unsigned_int  - 1) >> 2
+    return lit
 
+def scan_binary_proof(proof_file, record = None):
+    lemmas = 0
+    theory_lemmas = 0
+    buffer_limit = 2 << 18 #read 256MB once
+    in_clause = 0
+    with open(proof_file, 'rb') as file:
+        content = file.read(buffer_limit)
+        while content:
+            i = 0
+            while i < len(content):
+                b = content[i]
+                if not in_clause:
+                    if b == 0x61:
+                        in_clause = 1
+                    elif b == 0x74:
+                        in_clause = 2
+                else:
+                    if b == 0x00:
+                        in_clause = 0
+                        lemmas += 1
+                        if in_clause == 2:
+                            theory_lemmas += 1
+                    else:
+                        cur_l = 0
+                        cur_b = b
+                        while cur_b & 0x80:
+                            cur_l += cur_b & 0x7f
+                            i+= 1
+                            if i >= len(content):
+                                content = file.read(buffer_limit)
+                                i = 0
+                            cur_b = content[i]
+                        cur_l += cur_b & 0x7f
+                        lit = cur_l >> 2 if cur_l & 0b1 else -(cur_l >> 2)
+                        add_lit(lit)
+                        i+=1
+                        continue
+                i+= 1
+                continue
+            content = file.read(buffer_limit)
 
-
+    if record is not None:
+        record.set_lemma(lemmas)
+        record.set_theory_lemma(theory_lemmas)
 
 
 def scan_proof(proof_file, record = None):
@@ -450,15 +497,16 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
 
 
 # if __name__ == "__main__":
-#     parse_file("maze.gnf")
-#     w1 = Distance_LEQ.Collection
-#     w2 = w1.pop(1906)
-#     constraint = []
-#     w2.encode(constraint)
-#     for c in constraint:
-#         print()
-#         "{} 0 \n".format(' '.join([str(b) for b in c]))
-#     print(constraint)
+#     # parse_file("maze.gnf")
+#     # w1 = Distance_LEQ.Collection
+#     # w2 = w1.pop(1906)
+#     # constraint = []
+#     # w2.encode(constraint)
+#     # for c in constraint:
+#     #     print()
+#     #     "{} 0 \n".format(' '.join([str(b) for b in c]))
+#     # print(constraint)
+#     scan_binary_proof("reach.proof")
 '''
 model = get_model(cnfs + global_inv)
 if model:

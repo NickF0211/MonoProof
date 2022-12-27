@@ -9,7 +9,6 @@ import graph
 import bv
 import predicate
 import logic_gate
-import lit
 sys.setrecursionlimit(10000)
 
 monosat_path =  "/Users/nickfeng/monosat/monosat"
@@ -73,7 +72,10 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     parsing_time_end = time.time()
     print("cnf reading time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
-    scan_proof(proof_file, record)
+    try:
+        scan_proof(proof_file, record)
+    except UnicodeDecodeError:
+        scan_binary_proof(proof_file, record)
     # now we can process delayed equality
     logic_gate.process_delayed_equality(cnf)
     parsing_time_end = time.time()
@@ -239,7 +241,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "/Users/nickfeng/monosat/examples/python/color_maze.gnf"
+    gnf = "/Users/nickfeng/monosat/examples/python/reach.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"
@@ -249,11 +251,16 @@ if __name__ == "__main__":
     #verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, record=None)
     #run_and_prove("/Users/nickfeng/mono_encoding/mx_benchmark/1-nodag-nodiff-trvs-altera_10ax048_780.gnf")
     #run_and_prove("max_flow.gnf")
+    # launch_monosat(gnf, "test.proof", "test.support", options=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
+    #                                                             "-vsids-both", "-decide-theories",
+    #                                                             "-no-decide-graph-rnd",
+    #                                                             "-lazy-maxflow-decisions", "-conflict-min-cut",
+    #                                                             "-adaptive-history-clear=5"], record=Record("test"))
     run_and_prove(gnf, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
                                                                "-vsids-both", "-decide-theories",
                                                                "-no-decide-graph-rnd",
                                                                "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                               "-adaptive-history-clear=5"])
+                                                               "-adaptive-history-clear=5"], witness_reduction=False)
     # running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
     #                                                             "-vsids-both", "-decide-theories",
     #                                                             "-no-decide-graph-rnd",
