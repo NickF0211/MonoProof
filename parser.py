@@ -422,7 +422,6 @@ def scan_binary_proof(proof_file, record = None):
                 i+= 1
                 continue
             content = file.read(buffer_limit)
-
     if record is not None:
         record.set_lemma(lemmas)
         record.set_theory_lemma(theory_lemmas)
