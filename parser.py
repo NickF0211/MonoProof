@@ -199,7 +199,7 @@ def check_pure_cut(cuts):
             return False
     return True
 
-large_graph_edge_thresh_hold = 30000
+large_graph_edge_thresh_hold = 4000
 
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
     #now scan the list, and check what has to be done
@@ -379,7 +379,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 def process_binary_lit(lit):
     l1, l2, l3, l4 = lit
     unsigned_int = l1 + (l2 << 7) + (l3 << 14) + (l4 << 21)
-    lit = unsigned_int >> 2 if unsigned_int ^ 0b1 else (unsigned_int  - 1) >> 2
+    lit = unsigned_int >> 2 if unsigned_int ^ 0b1 else -((unsigned_int  - 1) >> 2)
     return lit
 
 def scan_binary_proof(proof_file, record = None):

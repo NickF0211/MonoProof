@@ -16,8 +16,9 @@ if __name__ == "__main__":
             print(file)
             r = Record(os.path.basename(file))
             try:
-                run_and_prove(file, r, witness_reduction=False)
+                run_and_prove(file, r, running_opt=['-ruc'], witness_reduction=False)
             except:
                 pass
             o_file.write("{}\n".format(r.__str__()))
+            o_file.flush()
             reset()

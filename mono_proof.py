@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 import time
 from parser import *
@@ -47,6 +48,11 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
         else:
             record.set_solving_result("Unknown/Error")
 
+    match = re.search(r"c total var nums: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_vars(int(match.group(1)))
+
     return res
 
 
@@ -72,10 +78,13 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     parsing_time_end = time.time()
     print("cnf reading time {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
-    try:
-        scan_proof(proof_file, record)
-    except UnicodeDecodeError:
-        scan_binary_proof(proof_file, record)
+    if record is not None and record.vars:
+        add_lit(record.vars)
+    else:
+        try:
+            scan_proof(proof_file, record)
+        except UnicodeDecodeError:
+            scan_binary_proof(proof_file, record)
     # now we can process delayed equality
     logic_gate.process_delayed_equality(cnf)
     parsing_time_end = time.time()
@@ -120,6 +129,7 @@ def load_record(record_string):
 class Record():
     def __init__(self, name):
         self.name = name
+        self.vars = 0
         self.solving_result = "unknown"
         self.solving_time = -1
         self.proof_preparing_time = -1
@@ -168,6 +178,9 @@ class Record():
 
     def set_verification_result(self, verification_result):
         self.verification_result = verification_result
+
+    def set_vars(self, vars):
+        self.vars = vars
 
     def __str__(self):
         return ','.join([str(ele) for ele in self.get_attributes()])
@@ -241,7 +254,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "/Users/nickfeng/monosat/examples/python/reach.gnf"
+    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_instances_mid_gnf/instances_N_5_M_6_C_3800_id_FmpzCyNCYY_atp_1.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"
@@ -256,16 +269,13 @@ if __name__ == "__main__":
     #                                                             "-no-decide-graph-rnd",
     #                                                             "-lazy-maxflow-decisions", "-conflict-min-cut",
     #                                                             "-adaptive-history-clear=5"], record=Record("test"))
-    run_and_prove(gnf, running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
-                                                               "-vsids-both", "-decide-theories",
-                                                               "-no-decide-graph-rnd",
-                                                               "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                               "-adaptive-history-clear=5"], witness_reduction=False)
-    # running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
-    #                                                             "-vsids-both", "-decide-theories",
-    #                                                             "-no-decide-graph-rnd",
-    #                                                             "-lazy-maxflow-decisions", "-conflict-min-cut",
-    #                                                             "-adaptive-history-clear=5"]
+    #run_and_prove(gnf, running_opt=["-ruc"], witness_reduction=False)
+    running_opt=["-no-check-solution", "-verb=1", "-theory-order-vsids",
+                                                                "-vsids-both", "-decide-theories",
+                                                                "-no-decide-graph-rnd",
+                                                                "-lazy-maxflow-decisions", "-conflict-min-cut",
+                                                                "-adaptive-history-clear=5"]
+    run_and_prove(gnf, running_opt=running_opt, witness_reduction=True)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)

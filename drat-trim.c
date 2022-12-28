@@ -1302,7 +1302,7 @@ int parse (struct solver* S) {
           else if (res ==  97) del = 0;
           else if (res == 100) del = 1;
           else if (res == 116){
-            theory = 1 & !S->ignoreTheory;
+            theory = 1 & !S->ignoreTheory; del = 0;
           }
           else { printf ("\rc ERROR: wrong binary prefix\n"); exit (0); }
           S->nReads++; }
