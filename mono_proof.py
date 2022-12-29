@@ -53,13 +53,23 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
         # Return the number as an integer
         record.set_vars(int(match.group(1)))
 
+    match = re.search(r"c total var tlemmas: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_theory_lemma(int(match.group(1)))
+
+    match = re.search(r"c total var lemmas: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_lemma(int(match.group(1)))
+
     return res
 
 
 def verify_full_proof(cnf, proof_file):
 
     print(' '.join([drat_trim_orig_path, cnf, proof_file, "-w"]))
-    process = subprocess.Popen([drat_trim_orig_path, cnf, proof_file, "-w"],
+    process = subprocess.Popen([drat_trim_orig_path, cnf, proof_file, "-w", "-t", "100000"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     result = "s VERIFIED" in stdout
@@ -279,7 +289,7 @@ if __name__ == "__main__":
                                                                 "-no-decide-graph-rnd",
                                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
                                                                 "-adaptive-history-clear=5"]
-    run_and_prove(gnf, running_opt=running_opt, witness_reduction=True)
+    run_and_prove(gnf, running_opt=running_opt, witness_reduction=False)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)
