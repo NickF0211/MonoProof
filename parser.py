@@ -472,6 +472,45 @@ def extract_cnf(source, cnfs = None):
     # write_dimacs(target, cnfs)
     return target
 
+def lit_to_binary(l, bytes):
+    u = 2 * l if l > 0 else ((l * -2) + 1)
+    while (u >> 7):
+        res = u & 0x7f | 0x80
+        bytes.append(res)
+        u = u >> 7
+    res = u & 0x7f
+    bytes.append(res)
+
+
+
+def write_binary_proof(lemmas, fp, chunk_size = 2 << 24):
+    bytes = bytearray()
+    for lemma in lemmas:
+        for step in lemma:
+            bytes.append(97)
+            for l in step:
+                lit_to_binary(l, bytes)
+            bytes.append(0x00)
+
+    if len(bytes) >= chunk_size:
+        fp.write(bytes)
+        bytes.clear()
+
+    fp.write(bytes)
+    bytes.clear()
+
+
+
+def reformat_proof_binary(proof_file, formated_proof, theory_steps):
+    chunk_size = 2 <<24
+    with open(formated_proof, 'wb') as new_proof:
+        write_binary_proof(theory_steps, new_proof)
+        with open(proof_file, 'rb') as proof:
+            chunk = proof.read(chunk_size)
+            while chunk:
+                new_proof.write(chunk)
+                chunk = proof.read(chunk_size)
+
 
 def reformat_proof(proof_file, formated_proof, theory_steps):
     with open(formated_proof, 'w') as new_proof:

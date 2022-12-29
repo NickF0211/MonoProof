@@ -19,7 +19,7 @@ drat_trim_orig_path = './drat-trim-orig'
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
     print(' '.join([cnf_file, proof_file,  "-w", "-l", temp_file, "-T", obligation_file]))
-    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-w", "-l", temp_file, "-T", obligation_file],
+    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-w", "-l", temp_file, "-T", obligation_file, "-C"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
     print(stdout)
@@ -111,7 +111,11 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     addition_encoder.flush()
     addition_encoder.close()
     rewrite_header(cnf_file, output_encoding, cnf, addition_encoder)
-    reformat_proof(optimizied_proof, output_proof, proofs)
+    try:
+        reformat_proof(optimizied_proof, output_proof, proofs)
+    except UnicodeDecodeError:
+        reformat_proof_binary(optimizied_proof, output_proof, proofs)
+
     #write_dimacs(output_encoding, cnf + global_inv)
     if not debug:
         if os.path.exists(obligation_file):
