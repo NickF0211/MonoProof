@@ -8,20 +8,20 @@ import os
 #make_pcrt(args.filename,args.N, args.M, args.constraints, args.seed)
 #route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFile = None)
 
-start_seed = 10
-increment = 10
-upper_bound = 200
+start_seed = 800
+increment = 200
+upper_bound = 20000
 attempts = 2
 monosat_time_out = 1500
-target_unsat_threshold = 10
+target_unsat_threshold = 2
 monosat_dir = "monosat"
 
 def random_id():
     letters = string.ascii_letters
     return ''.join(random.choice(letters) for _ in range(10))
 
-N = 20
-M = 3
+N = 5
+M = 4
 
 if __name__ == "__main__":
     cur = start_seed

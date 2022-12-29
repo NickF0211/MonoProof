@@ -268,7 +268,7 @@ def route(filename, monosat_args,use_maxflow=False, draw_solution=True, outputFi
 
 if __name__ == '__main__':
     import sys
-    monosat_args = ['-ruc'] #default argument for MonoSAT; enables the heuristics described in "Routing Under Constraints", FMCAD 2016, A. Nadel
+    monosat_args = ['-ruc', '-no-reach-underapprox-cnf'] #default argument for MonoSAT; enables the heuristics described in "Routing Under Constraints", FMCAD 2016, A. Nadel
     if len(sys.argv)<2:
         print("Usage: router.py [monosat arguments] filename.pcrt")
         sys.exit(1)
