@@ -291,7 +291,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 #assert is_rat(constraints+new_constraints+global_inv + [[-l] for l in orig_lemma])
                 # assert is_sat(constraints+new_constraints+global_inv)
             else:
-                reach.encode(new_constraints)
+                reach.encode(new_constraints, reach_cond = False)
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
