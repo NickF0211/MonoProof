@@ -526,6 +526,8 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
             while True:
                 line = proof.readline()
                 if line:
+                    if not (line.startswith('t') or line.startswith('d') or (line[0].isnumeric())):
+                        assert False
                     if not line.startswith('t'):
                         new_proof.write(line)
                     else:

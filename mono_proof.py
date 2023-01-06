@@ -125,6 +125,8 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
         reformat_proof(optimizied_proof, output_proof, proofs)
     except UnicodeDecodeError:
         reformat_proof_binary(optimizied_proof, output_proof, proofs)
+    except AssertionError:
+        reformat_proof_binary(optimizied_proof, output_proof, proofs)
 
     #write_dimacs(output_encoding, cnf + global_inv)
     if not debug:
@@ -268,7 +270,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_instances_mid_gnf/instances_N_5_M_6_C_3800_id_FmpzCyNCYY_atp_1.gnf"
+    gnf = "example.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"

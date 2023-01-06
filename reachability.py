@@ -141,15 +141,15 @@ class Reachability():
         encoded_reach, encoded_unreach = self.encoded.get(enabling_cond, (False, False))
         to_encode_reach = reach_cond > encoded_reach
         to_encode_unreach = unreach_cond > encoded_unreach
-        print("we are here")
+        # print("we are here")
         self.reachable[self.src] = TRUE()
         if to_encode_reach:
             print("encode reach")
             self.reachability_constraint(set(self.graph.edges), constraints, self.lit, enabling_cond)
         if to_encode_unreach:
-            print("encode unreach")
+            print(" encode unreach")
             self.unreachability_constraint(set(), constraints, self.lit, enabling_cond, force_witness=force_witness)
-        print("done")
+        # print("done")
         self.encoded[enabling_cond] = (encoded_reach or reach_cond, encoded_unreach or unreach_cond)
         return self.lit
 
