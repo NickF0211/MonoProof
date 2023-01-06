@@ -561,7 +561,7 @@ class Comparsion():
             return self.lit
         else:
             result_p = self.op(self.bv1, self.bv2, constraints)
-            constraints.append([IFF(self.lit, result_p)])
+            constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
             return self.lit
 
