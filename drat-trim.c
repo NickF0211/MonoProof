@@ -901,7 +901,8 @@ int init (struct solver *S) {
         fclose (coreFile); }
       if (S->lemmaStr) {
         FILE *lemmaFile = fopen (S->lemmaStr, "w");
-        fprintf (lemmaFile, "0\n");
+        if (S->binOutput) { fputc ('a', lemmaFile); write_lit (S, lemmaFile, 0); }
+        else fprintf (lemmaFile, "0\n");
         fclose (lemmaFile); }
       if (S->lratFile) {
         int j;
