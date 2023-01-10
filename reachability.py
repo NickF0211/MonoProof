@@ -616,11 +616,11 @@ class Reachability():
                             # else:
                             #     distance[target] = min(distance[target] , distance[head] + 1)
                             open.append(target)
-            max_distance = max(distance.values())
+            max_distance = len(distance.values())
             op_distance ={}
 
             for node in distance:
-                op_distance[node] = (max_distance + 1 - distance[node])
+                op_distance[node] = (max_distance  - distance[node])
 
             t_final = self.unary_reach_cyclic(op_distance, constraints)
             constraints.append([-self.lit, t_final])
