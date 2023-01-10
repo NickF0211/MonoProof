@@ -199,7 +199,7 @@ def check_pure_cut(cuts):
             return False
     return True
 
-large_graph_edge_thresh_hold = 4000
+large_graph_edge_thresh_hold = 3000
 
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
     #now scan the list, and check what has to be done
@@ -291,7 +291,9 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 #assert is_rat(constraints+new_constraints+global_inv + [[-l] for l in orig_lemma])
                 # assert is_sat(constraints+new_constraints+global_inv)
             else:
-                reach.encode(new_constraints, reach_cond = False)
+                # reach.encode(new_constraints, reach_cond = False)
+                hint = sorted(orig_lemma)[1:]
+                reach.collect_unreach(hint, new_constraints)
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
@@ -373,6 +375,9 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
             if len(new_constraints.content) > new_constraints.cap and is_drup:
                 new_constraints.flush()
 
+        # if there is any pending reachability lemmas to encode
+        for reach in Reachability.Collection.values():
+            reach.encode_union(new_constraints.content)
 
         return proofs
 
@@ -495,9 +500,9 @@ def write_binary_proof(lemmas, fp, chunk_size = 2 << 24):
     if len(bytes) >= chunk_size:
         fp.write(bytes)
         bytes.clear()
-
-    fp.write(bytes)
-    bytes.clear()
+    if bytes:
+        fp.write(bytes)
+        bytes.clear()
 
 
 

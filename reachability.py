@@ -54,6 +54,7 @@ class Reachability():
         self.inscope = None
         self.incoming = {}
         self.outgoing = {}
+        self.union_unreachable = set()
 
         Reachability.Collection[lit] = self
 
@@ -64,6 +65,8 @@ class Reachability():
         while open_nodes:
             head = open_nodes.pop()
             source_reachable.add(head)
+            if head == self.sink:
+                continue
             for target, _ in get_node(self.graph, head).outgoing.items():
                 if target not in source_reachable:
                     open_nodes.add(target)
@@ -73,6 +76,8 @@ class Reachability():
         while open_nodes:
             head = open_nodes.pop()
             sink_reachable_from.add(head)
+            if head == self.src:
+                continue
             for target, _ in get_node(self.graph, head).incoming.items():
                 if target not in sink_reachable_from:
                     open_nodes.add(target)
@@ -82,13 +87,13 @@ class Reachability():
         for node in self.inscope:
             incomings = {}
             for target, edge in get_node(self.graph, node).incoming.items():
-                if target in self.inscope:
+                if target in self.inscope and target != self.sink:
                     incomings[target] = edge
             self.incoming[node] = incomings
 
             outgoings = {}
             for target, edge in get_node(self.graph, node).outgoing.items():
-                if target in self.inscope:
+                if target in self.inscope and target != self.src:
                     outgoings[target] = edge
             self.outgoing[node] = outgoings
 
@@ -135,8 +140,14 @@ class Reachability():
 
 
     def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True, force_witness = False):
+        if self.sink == self.src:
+            constraints.append([IFF(self.lit, TRUE(), constraints)])
+            self.encoded[enabling_cond] = (True, True)
+            return self.lit
+
         if self.inscope is None:
             self.trim_unreachable()
+
 
         encoded_reach, encoded_unreach = self.encoded.get(enabling_cond, (False, False))
         to_encode_reach = reach_cond > encoded_reach
@@ -154,6 +165,11 @@ class Reachability():
         return self.lit
 
     def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition, dynamic= False, flow_cut=None, edge_cut=None, force_distance = False):
+        if self.sink == self.src:
+            constraint.append([IFF(self.lit, TRUE(), constraint)])
+            self.encoded[enabling_cond] = (True, True)
+            return self.lit
+
         if self.inscope is None:
             self.trim_unreachable()
         encoded_reach, encoded_unreach = self.encoded.get(enabling_cond, (False, False))
@@ -165,6 +181,7 @@ class Reachability():
             return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond, dynamic = dynamic, flow_cut=flow_cut, edge_cut = edge_cut, force_distance = force_distance)
         else:
             return self.lit
+
     def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
         # then the hint is the path from src to the sink
         #current_node = self.src
@@ -314,6 +331,7 @@ class Reachability():
                     cache[node] = distance_collection
 
                 if d > distance[node]:
+                    assert False
                     return TRUE()
                 else:
                     return cache[node][d]
@@ -341,7 +359,6 @@ class Reachability():
 
 
     def unary_reach_acyclic(self, distance, constraints):
-
         def get_reach(node, cache):
             if node == self.src:
                 return TRUE()
@@ -404,14 +421,15 @@ class Reachability():
 
         # explored.add(self.sink)
         while len(open) != 0:
-            head = open.pop()
+            head = open.pop(0)
             if head in explored:
                 continue
             else:
                 explored.add(head)
                 for target, edge in self.get_incoming(get_node(self.graph, head)).items():
                     if (not on_cut(edge, cut, is_edge_lit)) and (target not in explored):
-                        distance[target] = distance[head] + 1
+                        if target not in distance:
+                            distance[target] = distance[head] + 1
                         open.append(target)
 
         return distance
@@ -565,12 +583,53 @@ class Reachability():
 
             return cache[(node, depth)]
 
+    def _BFS(self, node, cut, constraint, enabling_cond):
+        pass
+
+    def collect_unreach(self, cut, constraint):
+        cyclic = self.is_cyclic(cut)
+        unreachable = self.compute_unreachable_graph(cut)
+        if not cyclic:
+            # if not cyclic, encode right the way
+            t_final = self.unary_reach_acyclic(unreachable, constraint)
+            constraint.append([-self.lit, t_final])
+        else:
+            self.union_unreachable = self.union_unreachable.union(unreachable)
+
+    def encode_union(self, constraints):
+        if self.union_unreachable:
+            explored = set()
+            distance = {}
+            open = [self.sink]
+            distance[self.sink] = 0
+
+            while len(open) != 0:
+                head = open.pop(0)
+                if head in explored:
+                    continue
+                else:
+                    explored.add(head)
+                    for target, edge in self.get_incoming(get_node(self.graph, head)).items():
+                        if target in self.union_unreachable and (target not in explored):
+                            if target not in distance:
+                                distance[target] = distance[head] + 1
+                            # else:
+                            #     distance[target] = min(distance[target] , distance[head] + 1)
+                            open.append(target)
+            max_distance = max(distance.values())
+            op_distance ={}
+
+            for node in distance:
+                op_distance[node] = (max_distance + 1 - distance[node])
+
+            t_final = self.unary_reach_cyclic(op_distance, constraints)
+            constraints.append([-self.lit, t_final])
 
     def is_cyclic(self, cut):
         return self._is_cyclic(cut, self.sink, set(), set())
 
     def _is_cyclic(self, cut, current, prefix, visited):
-        if current in prefix:
+        if current in prefix and current != self.sink:
             return True
         elif current in visited:
             return False

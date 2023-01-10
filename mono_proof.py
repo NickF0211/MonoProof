@@ -270,7 +270,8 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "example.gnf"
+    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_tiny/instances_N_5_M_2_C_40_id_xJEKwjwrkj_atp_1.gnf"
+    # gnf = "example.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"
@@ -291,7 +292,7 @@ if __name__ == "__main__":
                                                                 "-no-decide-graph-rnd",
                                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
                                                                 "-adaptive-history-clear=5"]
-    run_and_prove(gnf, running_opt=running_opt, witness_reduction=False)
+    run_and_prove(gnf, running_opt=["-ruc"], witness_reduction=False)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)
