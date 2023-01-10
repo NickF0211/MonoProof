@@ -280,12 +280,12 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
-            if witness_reduction:
-                threshold = 100
-            else:
-                threshold = large_graph_edge_thresh_hold
+            # if witness_reduction:
+            #     threshold = 100
+            # else:
+            #     threshold = large_graph_edge_thresh_hold
 
-            if len(reach.graph.edges) > threshold:
+            if witness_reduction:
                 hint = sorted(orig_lemma)[1:]
                 reach.encode_with_hint(hint, False, new_constraints, force_distance = not witness_reduction)
                 #assert is_rat(constraints+new_constraints+global_inv + [[-l] for l in orig_lemma])
