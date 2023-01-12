@@ -327,11 +327,10 @@ class Reachability():
 
             if node in distance:
                 if node not in cache:
-                    distance_collection = [FALSE()] + [new_lit() for i in range(distance[node])]
+                    distance_collection = [FALSE()] + [new_lit() for _ in range(distance[node])]
                     cache[node] = distance_collection
 
                 if d > distance[node]:
-                    assert False
                     return TRUE()
                 else:
                     return cache[node][d]
@@ -342,16 +341,12 @@ class Reachability():
         cache = {}
         for node in distance:
             for i in range(1, distance[node] + 1):
-                gt_constraint = []
+                gt_constraint = [get_distance(node, i-1, cache)]
                 for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                    gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints))
-                constraints.append([IMPLIES(get_distance(node, i, cache), g_OR(gt_constraint, constraints),
-                                            constraints)])
+                    gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints, forward=False))
+                constraints.append([IMPLIES(get_distance(node, i, cache), g_OR(gt_constraint, constraints, forward=False),
+                                            constraints, forward=False)])
 
-        for node, distance_vector in cache.items():
-            if node != self.src:
-                for i in range(len(distance_vector) - 1):
-                    constraints.append([IMPLIES(distance_vector[i], distance_vector[i + 1], constraints)])
 
         return get_distance(self.sink, distance[self.sink], cache)
 
@@ -382,7 +377,7 @@ class Reachability():
                     options.append(get_reach(target, cache))
                 else:
                     options.append(edge.lit)
-            constraints.append([IMPLIES(node_reach, g_OR(options, constraints), constraints)])
+            constraints.append([IMPLIES(node_reach, g_OR(options, constraints, forward=False), constraints, forward=False)])
         return get_reach(self.sink, cache)
 
 

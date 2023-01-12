@@ -330,6 +330,9 @@ void printProof (struct solver *S) {
     for (step = 0; step < S->nStep; step++) {
       long ad = S->proof[step];
       int theory = (S->theory_lemmas[step] == 1);
+      if (theory){
+        continue;
+      }
       int *lemmas = S->DB + (ad >> INFOBITS);
       if (!lemmas[1] && (ad & 1)) continue; // don't delete unit clauses
       if (S->binOutput) {
@@ -337,9 +340,9 @@ void printProof (struct solver *S) {
         if (ad & 1) fputc ('d', lemmaFile);
         else        fputc ('a', lemmaFile); }
       else if (ad & 1) fprintf (lemmaFile, "d ");
-      else if (theory) {
-        fprintf (lemmaFile, "t ");
-      }
+//      else if (theory) {
+//        fprintf (lemmaFile, "t ");
+//      }
       int reslit = lemmas[PIVOT];
       while (*lemmas) {
         int lit = *lemmas++;

@@ -387,52 +387,74 @@ def process_binary_lit(lit):
     lit = unsigned_int >> 2 if unsigned_int ^ 0b1 else -((unsigned_int  - 1) >> 2)
     return lit
 
-def scan_binary_proof(proof_file, record = None):
+def scan_binary_proof(proof_file, record = None, theory_obg = None, proof_fp = None):
     lemmas = 0
     theory_lemmas = 0
     buffer_limit = 2 << 18 #read 256MB once
     in_clause = 0
+    cur_binary_content = bytearray()
     with open(proof_file, 'rb') as file:
         content = file.read(buffer_limit)
+        cur_clause = []
         while content:
             i = 0
             while i < len(content):
                 b = content[i]
+                cur_binary_content.append(b)
                 if not in_clause:
                     if b == 0x61:
                         in_clause = 1
                     elif b == 0x74:
                         in_clause = 2
+                    elif b == 0x64:
+                        in_clause = 3
+                    else:
+                        assert False
                 else:
                     if b == 0x00:
-                        in_clause = 0
-                        lemmas += 1
                         if in_clause == 2:
                             theory_lemmas += 1
+                            if theory_obg:
+                                theory_obg.write("t {} 0\n".format(' '.join([str(l) for l in cur_clause])))
+                                theory_obg.write("Y\n")
+                        elif proof_fp:
+                            proof_fp.write(cur_binary_content)
+                            # if in_clause == 1:
+                            #     proof_fp.write("{}\n".format(' '.join([str(l) for l in cur_clause] + ['0'])))
+                            # elif in_clause == 3:
+                            #     proof_fp.write("d {}\n".format(' '.join([str(l) for l in cur_clause] + ['0'])))
+                        cur_binary_content.clear()
+                        lemmas += 1
+                        in_clause = 0
+                        cur_clause.clear()
                     else:
                         cur_l = 0
                         cur_b = b
+                        cur_index =0
                         while cur_b & 0x80:
-                            cur_l += cur_b & 0x7f
+                            cur_l += (cur_b & 0x7f) << (7 * cur_index)
+                            cur_index += 1
                             i+= 1
                             if i >= len(content):
                                 content = file.read(buffer_limit)
                                 i = 0
                             cur_b = content[i]
-                        cur_l += cur_b & 0x7f
-                        lit = cur_l >> 2 if cur_l & 0b1 else -(cur_l >> 2)
-                        add_lit(lit)
+                            cur_binary_content.append(cur_b)
+                        cur_l += (cur_b & 0x7f) << (7 * cur_index)
+                        lit = -(cur_l >> 1)  if cur_l & 0b1 else cur_l >> 1
+                        cur_clause.append(add_lit(lit))
                         i+=1
                         continue
                 i+= 1
                 continue
             content = file.read(buffer_limit)
+
     if record is not None:
         record.set_lemma(lemmas)
         record.set_theory_lemma(theory_lemmas)
 
 
-def scan_proof(proof_file, record = None):
+def scan_proof(proof_file, record = None, theory_obg = None):
     lemmas = 0
     theory_lemmas = 0
     with open(proof_file, 'r') as file:
@@ -449,10 +471,14 @@ def scan_proof(proof_file, record = None):
                     lemmas += 1
                     if header == 't':
                         theory_lemmas += 1
+                        if theory_obg:
+                            theory_obg.write(line)
+                            theory_obg.write('Y\n')
 
                     for lit in tokens:
                         if lit.isnumeric() or lit.startswith('-'):
                             add_lit(int(lit))
+
                 else:
                     print("unknown proof format")
                     assert False
@@ -531,7 +557,7 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
             while True:
                 line = proof.readline()
                 if line:
-                    if not (line.startswith('t') or line.startswith('d') or (line[0].isnumeric())):
+                    if not (line.startswith('t') or line.startswith('d') or (line[0].isnumeric()) or (line[0] == '-') ):
                         assert False
                     if not line.startswith('t'):
                         new_proof.write(line)

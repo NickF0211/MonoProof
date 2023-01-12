@@ -8,6 +8,13 @@ if __name__ == "__main__":
     input_directory = sys.argv[1]
     output_csv = sys.argv[2]
 
+    backward_check=True
+    for i,arg in enumerate(sys.argv):
+        if sys.argv[i].startswith("--no-backward-check"):
+            backward_check = False
+            del(sys.argv[i])
+            break
+
     test_files = glob(f"{input_directory}/**/*.gnf", recursive=True)
     with open(output_csv, 'w') as o_file:
         r = Record("test")
@@ -16,7 +23,7 @@ if __name__ == "__main__":
             print(file)
             r = Record(os.path.basename(file))
             try:
-                run_and_prove(file, r, running_opt=['-ruc'], witness_reduction=False)
+                run_and_prove(file, r, running_opt=['-ruc'], witness_reduction=False, backward_check=backward_check)
             except:
                 pass
             o_file.write("{}\n".format(r.__str__()))

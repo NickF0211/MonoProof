@@ -26,6 +26,22 @@ def verify_theory(cnf_file, proof_file, obligation_file):
     assert "s VERIFIED" in stdout
     return temp_file
 
+def prepare_proof(proof_file, obligation_file, record):
+    temp_file = str(uuid4())
+    try:
+        with open(obligation_file, 'w') as ob:
+            scan_proof(proof_file, record, ob)
+    except AssertionError:
+        with open(obligation_file, 'w') as ob:
+            with open(temp_file, 'wb') as fp:
+                scan_binary_proof(proof_file, record, ob, fp)
+    except UnicodeDecodeError:
+        with open(obligation_file, 'w') as ob:
+            with open(temp_file, 'wb') as fp:
+                scan_binary_proof(proof_file, record, ob, fp)
+    # shutil.move(proof_file, temp_file)
+    return temp_file
+
 def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options = None, record = None):
     arugment_list = [monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"]
     if extra_cnf is not None:
@@ -78,7 +94,7 @@ def verify_full_proof(cnf, proof_file):
     return result
 
 def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_proof, debug=False,
-                 extra_cnf = None, record = None, witness_reduction = True):
+                 extra_cnf = None, record = None, witness_reduction = True, backward_check=True):
     start_time = time.time()
     cnf = parse_file(gnf_file)
     if extra_cnf is not None:
@@ -106,7 +122,10 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     print("parsing + pre_encoding {}".format(parsing_time_end - start_time))
     start_time = parsing_time_end
     write_dimacs(cnf_file, cnf)
-    optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    if backward_check:
+        optimizied_proof = verify_theory(cnf_file, proof_file, obligation_file)
+    else:
+        optimizied_proof = prepare_proof(proof_file, obligation_file, record)
     #optimizied_proof = proof_file
     parsing_time_end = time.time()
     print("theory processing time {}".format(parsing_time_end - start_time))
@@ -121,6 +140,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     addition_encoder.flush()
     addition_encoder.close()
     rewrite_header(cnf_file, output_encoding, cnf, addition_encoder)
+    # shutil.move(optimizied_proof, proof_file)
     try:
         reformat_proof(optimizied_proof, output_proof, proofs)
     except UnicodeDecodeError:
@@ -210,13 +230,13 @@ class Record():
         for i in range(len(self.attribute_names)):
             setattr(self, self.attribute_names[i], tokens[i])
 
-def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witness_reduction = True):
+def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witness_reduction = True, backward_check = True):
     assert os.path.exists(support_file)
     assert os.path.exists(proof_file)
     start_time = time.time()
     output_cnf = reextension(gnf, 'extcnf', suffix="complete")
     verify_proof(gnf, proof_file, support_file, output_cnf, proof_file, extra_cnf=extra_cnf, record=record,
-                 witness_reduction=witness_reduction)
+                 witness_reduction=witness_reduction, backward_check = backward_check)
     tick = time.time()
     solving_time = tick - start_time
     start_time = tick
@@ -236,7 +256,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witnes
 
 
 
-def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True):
+def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True, backward_check = True):
     reset()
     if record is None:
         record = Record(gnf)
@@ -250,11 +270,10 @@ def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True
     unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options=running_opt)
     tick = time.time()
     solving_time = tick - start_time
-    start_time = tick
     record.set_solving_time(solving_time)
     print("solving with certificate time: {}".format(solving_time))
     if unsat:
-        return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf, witness_reduction = witness_reduction)
+        return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf, witness_reduction = witness_reduction, backward_check=backward_check)
     else:
         print("monosat decided the instance is SAT")
         return False
@@ -270,7 +289,7 @@ def reset():
 
 
 if __name__ == "__main__":
-    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_tiny/instances_N_5_M_2_C_40_id_xJEKwjwrkj_atp_1.gnf"
+    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
     # gnf = "example.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
@@ -292,7 +311,7 @@ if __name__ == "__main__":
                                                                 "-no-decide-graph-rnd",
                                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
                                                                 "-adaptive-history-clear=5"]
-    run_and_prove(gnf, running_opt=["-ruc"], witness_reduction=False)
+    run_and_prove(gnf, running_opt=["-ruc"], witness_reduction=False, backward_check=True)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)
