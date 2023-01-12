@@ -327,26 +327,35 @@ class Reachability():
 
             if node in distance:
                 if node not in cache:
-                    distance_collection = [FALSE()] + [new_lit() for _ in range(distance[node])]
+                    distance_collection = [FALSE(), 0]
                     cache[node] = distance_collection
 
                 if d > distance[node]:
+                    assert False
                     return TRUE()
                 else:
-                    return cache[node][d]
+                    assert cache[node][0] != 0
+                    return cache[node][0]
 
             else:
                 return TRUE()
 
+        def update_cache(cache):
+            for node in cache:
+                res = cache[node]
+                cache[node] = [res[1], 0]
+
         cache = {}
-        for node in distance:
-            for i in range(1, distance[node] + 1):
+        for i in range(1, distance[self.sink] + 1):
+            for node in distance:
+                if distance[node] < i:
+                    continue
                 gt_constraint = [get_distance(node, i-1, cache)]
                 for target, edge in self.get_incoming(get_node(self.graph, node)).items():
                     gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints, forward=False))
-                constraints.append([IMPLIES(get_distance(node, i, cache), g_OR(gt_constraint, constraints, forward=False),
-                                            constraints, forward=False)])
+                cache[node][1] = g_OR(gt_constraint, constraints, forward=False)
 
+            update_cache(cache)
 
         return get_distance(self.sink, distance[self.sink], cache)
 
