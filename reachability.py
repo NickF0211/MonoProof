@@ -1,5 +1,7 @@
 from logic_gate import *
 from graph import *
+from distance import Distance_Collector
+
 
 def _default_enabling_condition(edge):
     return edge.lit
@@ -18,16 +20,20 @@ def on_path(edge, cut, is_edge_lit):
     else:
         return edge in cut
 
+
 def update_max_distance(max_distance, node, cur_dis):
     max_dis = max_distance.get(node, 0)
     if cur_dis > max_dis:
         max_distance[node] = cur_dis
+
 
 def get_max_distance(max_distance, node):
     return max_distance.get(node, 0)
 
 
 large_graph_threshold = 400
+
+
 class Reachability():
     Collection = {}
 
@@ -109,6 +115,7 @@ class Reachability():
 
     def encode_unreach_residual(self, constraints, flow_assignment):
         reachability = {}
+
         def get_reachable(node):
             if node in reachability:
                 return reachability[node]
@@ -134,12 +141,20 @@ class Reachability():
                 obligation.append(OR(Equal_const(rflow, 0), -get_reachable(target), constraints))
 
             validity_constraints.append(
-                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
+                IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
+    def binary_encode(self, constraints):
+        distance_collector = Distance_Collector(self.src, self.graph)
+        distance_collector.initialize(constraints, is_mono=False)
+        result = AND(LE_const(distance_collector.get_distance(self.sink), len(self.graph.nodes), constraints),
+                     distance_collector.get_reachable(self.sink), constraints)
+        constraints.append([IFF(self.lit, result, constraints)])
+        return self.lit
 
-    def encode(self, constraints, enabling_cond = _default_enabling_condition, reach_cond = True, unreach_cond = True, force_witness = False):
+    def encode(self, constraints, enabling_cond=_default_enabling_condition, reach_cond=True, unreach_cond=True,
+               force_witness=False):
         if self.sink == self.src:
             constraints.append([IFF(self.lit, TRUE(), constraints)])
             self.encoded[enabling_cond] = (True, True)
@@ -147,7 +162,6 @@ class Reachability():
 
         if self.inscope is None:
             self.trim_unreachable()
-
 
         encoded_reach, encoded_unreach = self.encoded.get(enabling_cond, (False, False))
         to_encode_reach = reach_cond > encoded_reach
@@ -164,7 +178,8 @@ class Reachability():
         self.encoded[enabling_cond] = (encoded_reach or reach_cond, encoded_unreach or unreach_cond)
         return self.lit
 
-    def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition, dynamic= False, flow_cut=None, edge_cut=None, force_distance = False):
+    def encode_with_hint(self, hint, reachable, constraint, enabling_cond=_default_enabling_condition, dynamic=False,
+                         flow_cut=None, edge_cut=None, force_distance=False):
         if self.sink == self.src:
             constraint.append([IFF(self.lit, TRUE(), constraint)])
             self.encoded[enabling_cond] = (True, True)
@@ -178,13 +193,14 @@ class Reachability():
         if reachable and not encoded_reach:
             return self.reachability_constraint(hint, constraint, self.lit, enabling_cond)
         elif not reachable and not encoded_unreach:
-            return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond, dynamic = dynamic, flow_cut=flow_cut, edge_cut = edge_cut, force_distance = force_distance)
+            return self.unreachability_constraint(hint, constraint, self.lit, enabling_cond, dynamic=dynamic,
+                                                  flow_cut=flow_cut, edge_cut=edge_cut, force_distance=force_distance)
         else:
             return self.lit
 
-    def reachability_constraint(self, path, constraint, predicate, enabling_cond = _default_enabling_condition):
+    def reachability_constraint(self, path, constraint, predicate, enabling_cond=_default_enabling_condition):
         # then the hint is the path from src to the sink
-        #current_node = self.src
+        # current_node = self.src
         is_edge_lit = False
         for i in path:
             is_edge_lit = isinstance(i, int)
@@ -204,15 +220,16 @@ class Reachability():
                     if next_reachable == 0:
                         next_reachable = new_lit()
                         self.reachable[next] = next_reachable
-                    constraint.append([IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
+                    constraint.append(
+                        [IMPLIES(AND(current_reach, enabling_cond(edge), constraint), next_reachable, constraint)])
 
                     if next not in explored:
                         exploring.append(next)
 
-        #assert self.sink in explored
-        #print("{} {}".format(current_node, self.reachable[current_node]))
+        # assert self.sink in explored
+        # print("{} {}".format(current_node, self.reachable[current_node]))
 
-        if  self.sink not in explored:
+        if self.sink not in explored:
             self.reachable[self.sink] = new_lit()
 
         constraint.append([IMPLIES(self.reachable[self.sink], predicate, constraint)])
@@ -224,9 +241,9 @@ class Reachability():
         removed = set()
         for e in add_edges:
             head = e.target
-            #in case cut-inward
+            # in case cut-inward
             if head in self.unreach_hint_old_explored:
-                #now computes what has being removed
+                # now computes what has being removed
                 if e.src in self.unreach_hint_old_explored:
                     exploring = [e.src]
                     while exploring != []:
@@ -236,11 +253,12 @@ class Reachability():
                         else:
                             removed.add(head)
                             for target, edge in self.get_incoming(get_node(self.graph, head)).items():
-                                if not(edge in new_edges) and target in self.unreach_hint_old_explored  and not (target in removed):
+                                if not (edge in new_edges) and target in self.unreach_hint_old_explored and not (
+                                        target in removed):
                                     exploring.append(target)
 
             else:
-                #in case cut-outward
+                # in case cut-outward
                 exploring = [e.target]
                 while exploring != []:
                     head = exploring.pop()
@@ -260,9 +278,9 @@ class Reachability():
 
         return new_explored, removed, touched
 
-
-    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond = _default_enabling_condition,
-                                  dynamic = False, flow_cut = None, edge_cut = None, force_witness = False, force_distance = False):
+    def unreachability_constraint(self, cut, constraint, predicate, enabling_cond=_default_enabling_condition,
+                                  dynamic=False, flow_cut=None, edge_cut=None, force_witness=False,
+                                  force_distance=False):
         # each node contains two boolean variable, init, and final. init is true for the src,
         # final takes about weather the node will eventually be reachable from the source
         if dynamic:
@@ -272,17 +290,17 @@ class Reachability():
                 # the mono_encoding
                 constraint.append([-predicate, t_final])
             else:
-                #now analyze what is the differnce in cut
+                # now analyze what is the differnce in cut
                 removed_cut = self.old_flow_cut.difference(flow_cut).union(self.old_edge_cut.difference(edge_cut))
                 added_cut = flow_cut.difference(self.old_flow_cut).union(edge_cut.difference(self.old_edge_cut))
                 delta_cut = removed_cut.union(added_cut)
                 explored, touched = self.compute_unreachable_delta(cut)
                 for e in delta_cut:
                     touched.add(e.target)
-                t_final = self.compute_unreachable_graph_by_cut_delta( constraint, touched, explored, enabling_cond)
+                t_final = self.compute_unreachable_graph_by_cut_delta(constraint, touched, explored, enabling_cond)
                 constraint.append([-predicate, t_final])
 
-            #self.old_t_final = t_final
+            # self.old_t_final = t_final
             self.old_edge_cut = edge_cut
             self.old_flow_cut = flow_cut
             self.unreach_hint_old_cut = cut
@@ -296,11 +314,10 @@ class Reachability():
                 if cyclic:
                     max_distance = max(distance.values())
                     if len(self.graph.nodes) > large_graph_threshold or (self.total_encoded_distance +
-                                                                         (max_distance * max_distance))  > \
+                                                                         (max_distance * max_distance)) > \
                             (len(self.graph.nodes) * len(self.graph.nodes)):
                         print("lazy encoding do not pay off, switch to eager")
                         return self.encode(constraint, enabling_cond=enabling_cond, unreach_cond=True, reach_cond=False)
-
 
                     # print(max_distance, cyclic)
                     for node in distance:
@@ -350,7 +367,7 @@ class Reachability():
             for node in distance:
                 if distance[node] < i:
                     continue
-                gt_constraint = [get_distance(node, i-1, cache)]
+                gt_constraint = [get_distance(node, i - 1, cache)]
                 for target, edge in self.get_incoming(get_node(self.graph, node)).items():
                     gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints, forward=False))
                 cache[node][1] = g_OR(gt_constraint, constraints, forward=False)
@@ -358,9 +375,6 @@ class Reachability():
             update_cache(cache)
 
         return get_distance(self.sink, distance[self.sink], cache)
-
-
-
 
     def unary_reach_acyclic(self, distance, constraints):
         def get_reach(node, cache):
@@ -386,10 +400,9 @@ class Reachability():
                     options.append(get_reach(target, cache))
                 else:
                     options.append(edge.lit)
-            constraints.append([IMPLIES(node_reach, g_OR(options, constraints, forward=False), constraints, forward=False)])
+            constraints.append(
+                [IMPLIES(node_reach, g_OR(options, constraints, forward=False), constraints, forward=False)])
         return get_reach(self.sink, cache)
-
-
 
     def compute_unreachable_graph(self, cut):
         explored = set()
@@ -400,7 +413,7 @@ class Reachability():
             is_edge_lit = isinstance(e, int)
             break
 
-        #explored.add(self.sink)
+        # explored.add(self.sink)
         while len(open) != 0:
             head = open.pop()
             if head in explored:
@@ -438,7 +451,6 @@ class Reachability():
 
         return distance
 
-
     def compute_unreachable_delta(self, cut):
         explored = set()
         touched = set()
@@ -462,7 +474,6 @@ class Reachability():
                         open.append(target)
 
         return explored, touched
-
 
     def compute_unreachable_graph_by_cut_delta(self, constraints, touched, explored, enabling_cond):
         def get_reachable(node):
@@ -491,24 +502,24 @@ class Reachability():
             node_obligation = IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints)
             new_obligations[node] = node_obligation
             validity_constraints.append(
-                                       node_obligation)
+                node_obligation)
         self.old_node_obligations = new_obligations
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
     def compute_unreachable_graph_by_cut(self, cut, explored, constraint, cache, enabling_cond, force_witness=False):
         max_size = len(explored)
-        #print(max_size)
+        # print(max_size)
         if (len(cut) == 0 and not force_witness):
             max_distance = dict()
 
             return self._DSF(self.sink, max_size, cut, constraint, cache, enabling_cond, max_distance)
         else:
-            #use the information in the cut to perform the witness encoding
-            return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond, is_forced = force_witness)
+            # use the information in the cut to perform the witness encoding
+            return self.wtiness_reduced_unreachability(constraint, explored, enabling_cond, is_forced=force_witness)
 
-
-    def wtiness_reduced_unreachability(self, constraints, explored, enabling_cond, is_forced = False):
+    def wtiness_reduced_unreachability(self, constraints, explored, enabling_cond, is_forced=False):
         reachability = {}
+
         def get_reachable(node):
             if node == self.src:
                 return TRUE()
@@ -524,6 +535,7 @@ class Reachability():
                         return res
                 else:
                     return TRUE()
+
         validity_constraints = []
 
         for node in explored:
@@ -534,14 +546,9 @@ class Reachability():
             node_obg = IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints)
             self.old_node_obligations[node] = node_obg
             validity_constraints.append(
-                                       IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
+                IMPLIES(-get_reachable(node), g_AND(obligation, constraints), constraints))
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
-
-
-
-
-
 
     def check_cyclic(self, head, cut, path, explored):
         for target, edge in self.get_incoming(get_node(self.graph, head)).items():
@@ -557,8 +564,6 @@ class Reachability():
 
         return False
 
-
-
     def _DSF(self, node, depth, cut, constraint, cache, enabling_cond, max_distance):
         res = cache.get((node, depth), None)
         if res is not None:
@@ -571,12 +576,13 @@ class Reachability():
             else:
                 if depth == 0:
                     return FALSE()
-                for d in range(cur_distance+1, depth+1):
+                for d in range(cur_distance + 1, depth + 1):
                     obligation = []
                     if cache.get((node, d), None) is None:
                         for target, edge in self.get_incoming(get_node(self.graph, node)).items():
                             if edge.lit not in cut:
-                                t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond, max_distance)
+                                t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond,
+                                                        max_distance)
                             else:
                                 t_depth_var = TRUE()
 
@@ -621,10 +627,10 @@ class Reachability():
                             #     distance[target] = min(distance[target] , distance[head] + 1)
                             open.append(target)
             max_distance = len(distance.values())
-            op_distance ={}
+            op_distance = {}
 
             for node in distance:
-                op_distance[node] = (max_distance  - distance[node])
+                op_distance[node] = (max_distance - distance[node])
 
             t_final = self.unary_reach_cyclic(op_distance, constraints)
             constraints.append([-self.lit, t_final])
@@ -649,11 +655,6 @@ class Reachability():
             return False
 
 
-
-
-
-
-
 def parse_reach(attributes):
     if len(attributes) != 4:
         return False
@@ -661,7 +662,5 @@ def parse_reach(attributes):
         gid, source, target, lit = attributes
         gid = int(gid)
         graph = get_graph(gid)
-        Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit = add_lit(int(lit)))
+        Reachability(graph, get_node(graph, int(source)), get_node(graph, int(target)), lit=add_lit(int(lit)))
         return True
-
-
