@@ -6,11 +6,11 @@ from mono_proof import verify_full_proof, Record
 from parser import parse_file, Reachability, reextension
 from predicate import pre_encode
 
-cadical_path = "./cadical"
+solver_path = "./kissat/build/kissat"
 drat_trim_orig = "./drat-trim-orig"
 
-def run_cadical_with_proof(cnf, proof):
-    arugment_list = [cadical_path, cnf, proof, "-q", "-t", "60000"]
+def run_solver_with_proof(cnf, proof):
+    arugment_list = [solver_path, cnf, proof, "-q", "--time=60000"]
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -33,7 +33,7 @@ def parse_encode_solve_prove(gnf, record):
     print("start solving")
     proof_file = reextension(output_cnf, "proof")
     solving_start = time.time()
-    print(run_cadical_with_proof(output_cnf, proof_file))
+    print(run_solver_with_proof(output_cnf, proof_file))
     solving_time = time.time() - solving_start
     record.set_solving_time(solving_time)
     proving_start = time.time()

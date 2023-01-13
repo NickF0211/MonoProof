@@ -145,12 +145,15 @@ class Reachability():
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
-    def binary_encode(self, constraints):
+    def binary_encode(self, constraints, mono=False):
+        if self.encoded.get(_default_enabling_condition, None)  == (True, True):
+            return self.lit
+        self.encoded[_default_enabling_condition] = (True, True)
         distance_collector = Distance_Collector(self.src, self.graph)
-        distance_collector.initialize(constraints, is_mono=False)
-        result = AND(LE_const(distance_collector.get_distance(self.sink), len(self.graph.nodes), constraints),
-                     distance_collector.get_reachable(self.sink), constraints)
-        constraints.append([IFF(self.lit, result, constraints)])
+        distance_collector.initialize(constraints, is_mono=mono)
+        # result = AND(LE_const(distance_collector.get_distance(self.sink), len(self.graph.nodes), constraints),
+        #              distance_collector.get_reachable(self.sink), constraints)
+        constraints.append([IFF(self.lit, distance_collector.get_reachable(self.sink), constraints)])
         return self.lit
 
     def encode(self, constraints, enabling_cond=_default_enabling_condition, reach_cond=True, unreach_cond=True,
