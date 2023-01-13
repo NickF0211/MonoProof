@@ -59,7 +59,7 @@ class Distance_Collector():
         result = self.distance.get(node, None)
         if result is None:
             if node == self.src:
-                self.distance[node] = const_bv(None, self.max_width, 0)
+                self.distance[node] = const_to_bv(0)
             else:
                 self.distance[node] = new_bv(self.max_width, True)
             return self.distance[node]
@@ -80,25 +80,34 @@ class Distance_Collector():
     def initialize(self, constraints, is_mono = True):
         addition = add_mono if is_mono else add
         if not self.initialized:
-            for node in self.graph.nodes:
-                if node != self.src:
-                    #backward constraints:
-                    temp_constraints = [-self.get_reachable(node)]
-                    for target, edge in get_node(self.graph, node).incoming.items():
-                        gt_distance = GT(self.get_distance(node), self.get_distance(target), constraints)
-                        temp_constraints.append( g_AND([gt_distance, edge.lit, self.get_reachable(target)], constraints))
-                    constraints.append([g_OR(temp_constraints, constraints)])
+            if is_mono:
+                for node in self.graph.nodes:
+                    if node != self.src:
+                        #backward constraints:
+                        temp_constraints = [-self.get_reachable(node)]
+                        for target, edge in get_node(self.graph, node).incoming.items():
+                            gt_distance = GT(self.get_distance(node), self.get_distance(target), constraints)
+                            temp_constraints.append( g_AND([gt_distance, edge.lit, self.get_reachable(target)], constraints))
+                        constraints.append([g_OR(temp_constraints, constraints)])
 
-
-                #forward constraints:
-                for target, edge in get_node(self.graph, node).outgoing.items():
-                    cond1 = AND(edge.lit, self.get_reachable(node), constraints)
-                    constraints.append([IMPLIES(cond1,
-                                               AND(LE(self.get_distance(target),
-                                                            addition(self.get_distance(node), 1, constraints), constraints),
-                                                                                            self.get_reachable(target),
-                                                                                               constraints),
-                                                            constraints)])
+                    #forward constraints:
+                    for target, edge in get_node(self.graph, node).outgoing.items():
+                        cond1 = AND(edge.lit, self.get_reachable(node), constraints)
+                        constraints.append([IMPLIES(cond1,
+                                                   AND(LE(self.get_distance(target),
+                                                                addition(self.get_distance(node), 1, constraints), constraints),
+                                                                                                self.get_reachable(target),
+                                                                                                   constraints),
+                                                                constraints)])
+            else:
+                for node in self.graph.nodes:
+                    if node != self.src:
+                        temp_constraints = []
+                        for target, edge in get_node(self.graph, node).incoming.items():
+                            successor = Equal(self.get_distance(node), add(self.get_distance(target), const_to_bv(1)), constraints)
+                            temp_constraints.append(
+                                g_AND([successor, edge.lit, self.get_reachable(target)], constraints))
+                        constraints.append([IFF(self.get_reachable(node), g_OR(temp_constraints, constraints), constraints)])
 
             self.initialized = True
 

@@ -45,9 +45,10 @@ def parse_encode_solve_prove(gnf, record):
         record.set_verification_result(False)
     proving_time = time.time() - proving_start
     record.set_proof_verification_time(proving_time)
-    print("{},{},{},{}".format(gnf, encoding_start, solving_time, proving_time))
+    print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
 
 
 if __name__ == "__main__":
     gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
+    # gnf = "example.gnf"
     parse_encode_solve_prove(gnf, None)
