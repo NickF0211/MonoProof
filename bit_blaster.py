@@ -10,7 +10,7 @@ cadical_path = "./cadical"
 drat_trim_orig = "./drat-trim-orig"
 
 def run_cadical_with_proof(cnf, proof):
-    arugment_list = [cadical_path, cnf, proof, "-q"]
+    arugment_list = [cadical_path, cnf, proof, "-q", "-t", "60000"]
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -50,4 +50,4 @@ def parse_encode_solve_prove(gnf, record):
 
 if __name__ == "__main__":
     gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
-    parse_encode_solve_prove(gnf)
+    parse_encode_solve_prove(gnf, None)
