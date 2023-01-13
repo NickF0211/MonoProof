@@ -77,7 +77,8 @@ class Distance_Collector():
         else:
             return result
 
-    def initialize(self, constraints):
+    def initialize(self, constraints, is_mono = True):
+        addition = add_mono if is_mono else add
         if not self.initialized:
             for node in self.graph.nodes:
                 if node != self.src:
@@ -94,7 +95,7 @@ class Distance_Collector():
                     cond1 = AND(edge.lit, self.get_reachable(node), constraints)
                     constraints.append([IMPLIES(cond1,
                                                AND(LE(self.get_distance(target),
-                                                            add_mono(self.get_distance(node), 1, constraints), constraints),
+                                                            addition(self.get_distance(node), 1, constraints), constraints),
                                                                                             self.get_reachable(target),
                                                                                                constraints),
                                                             constraints)])
