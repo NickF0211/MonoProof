@@ -147,7 +147,7 @@ class Reachability():
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
     def binary_encode(self, constraints, mono=False):
-        if self.encoded.get(_default_enabling_condition, None)  == (True, True):
+        if self.encoded.get(_default_enabling_condition, None) == (True, True):
             return self.lit
         self.encoded[_default_enabling_condition] = (True, True)
         distance_collector = Distance_Collector(self.src, self.graph)
@@ -342,6 +342,19 @@ class Reachability():
             return predicate
 
     def unary_reach_cyclic(self, distance, constraints):
+        reach_cache = {}
+
+        def get_reach(node, reach_cache):
+            if node is self.src or node not in distance:
+                return TRUE()
+            else:
+                if node in reach_cache:
+                    return reach_cache[node]
+                else:
+                    res = new_lit()
+                    reach_cache[node] = res
+                    return res
+
         def get_distance(node, d, cache):
             if node == self.src:
                 return TRUE()
@@ -370,20 +383,28 @@ class Reachability():
 
             return new_cache
 
-
         cache = {}
+        sink_d = []
         for i in range(1, distance[self.sink] + 1):
             for node in distance:
                 if distance[node] < i:
                     continue
-                gt_constraint = [get_distance(node, i - 1, cache)]
+                gt_constraint = []
                 for target, edge in self.get_incoming(get_node(self.graph, node)).items():
                     gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints, forward=False))
-                cache[node] = (cache[node][0], g_OR(gt_constraint, constraints, forward=False))
+                cache[node] = (get_distance(node, i - 1, cache), g_OR(gt_constraint, constraints, forward=False))
+
+            sink_d.append(get_distance(self.sink, i, cache))
 
             cache = update_cache(cache, i)
 
-        return get_distance(self.sink, distance[self.sink], cache)
+        for node in distance:
+            gt_constraint = []
+            for target, edge in self.get_incoming(get_node(self.graph, node)).items():
+                gt_constraint.append(AND(edge.lit, get_reach(target, reach_cache), constraints, forward=False))
+            constraints.append([-get_reach(node, reach_cache), g_OR(gt_constraint, constraints, forward=False)])
+
+        return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints, forward=False)
 
     def unary_reach_acyclic(self, distance, constraints):
         def get_reach(node, cache):
