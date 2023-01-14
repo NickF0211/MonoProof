@@ -61,6 +61,7 @@ class Reachability():
         self.incoming = {}
         self.outgoing = {}
         self.union_unreachable = set()
+        self.cut_max_d = 0
 
         Reachability.Collection[lit] = self
 
@@ -606,12 +607,13 @@ class Reachability():
 
     def collect_unreach(self, cut, constraint):
         cyclic = self.is_cyclic(cut)
-        unreachable = self.compute_unreachable_graph(cut)
+        unreachable = self.compute_unreachable_graph_with_shortest_distance(cut)
         if not cyclic:
             # if not cyclic, encode right the way
             t_final = self.unary_reach_acyclic(unreachable, constraint)
             constraint.append([-self.lit, t_final])
         else:
+            self.cut_max_d = max(self.cut_max_d, len(unreachable))
             self.union_unreachable = self.union_unreachable.union(unreachable)
 
     def encode_union(self, constraints):
@@ -634,11 +636,12 @@ class Reachability():
                             # else:
                             #     distance[target] = min(distance[target] , distance[head] + 1)
                             open.append(target)
-            max_distance = len(distance.values())
+            # max_distance = len(distance.values())
             op_distance = {}
 
             for node in distance:
-                op_distance[node] = (max_distance - distance[node])
+                # print(max_distance, self.cut_max_d)
+                op_distance[node] = (self.cut_max_d - distance[node])
 
             t_final = self.unary_reach_cyclic(op_distance, constraints)
             constraints.append([-self.lit, t_final])
