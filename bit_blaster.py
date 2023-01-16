@@ -1,8 +1,9 @@
 import subprocess
+import sys
 import time
 
 from lit import write_dimacs
-from mono_proof import verify_full_proof, Record
+from mono_proof import verify_full_proof, Record, reset
 from parser import parse_file, Reachability, reextension
 from predicate import pre_encode
 
@@ -18,6 +19,7 @@ def run_solver_with_proof(cnf, proof):
     return res
 
 def parse_encode_solve_prove(gnf, record):
+    reset()
     if record is None:
         record = Record("test")
     cnf = parse_file(gnf)
@@ -50,5 +52,7 @@ def parse_encode_solve_prove(gnf, record):
 
 if __name__ == "__main__":
     gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
+    if len(sys.argv) >= 2:
+        gnf = sys.argv[1]
     # gnf = "example.gnf"
     parse_encode_solve_prove(gnf, None)
