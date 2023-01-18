@@ -19,7 +19,7 @@ drat_trim_orig_path = './drat-trim-orig'
 def verify_theory(cnf_file, proof_file, obligation_file):
     temp_file = str(uuid4())
     print(' '.join([cnf_file, proof_file,  "-w", "-l", temp_file, "-T", obligation_file]))
-    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-w", "-l", temp_file, "-T", obligation_file, "-C"],
+    process = subprocess.Popen([drat_path, cnf_file, proof_file, "-w", "-l", temp_file, "-c", cnf_file,"-T", obligation_file, "-C"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
     print(stdout)
@@ -289,6 +289,7 @@ def reset():
 
 
 if __name__ == "__main__":
+    # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_instances_mid_gnf/instances_N_5_M_6_C_3800_id_FmpzCyNCYY_atp_0.gnf"
     gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
     # gnf = "example.gnf"
     # proof_file = "test.proof"
