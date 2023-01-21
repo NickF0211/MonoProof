@@ -1,6 +1,6 @@
 from logic_gate import *
 from graph import *
-from distance import Distance_Collector
+from distance import Distance_Collector, get_distance_collector
 
 
 def _default_enabling_condition(edge):
@@ -150,7 +150,7 @@ class Reachability():
         if self.encoded.get(_default_enabling_condition, None) == (True, True):
             return self.lit
         self.encoded[_default_enabling_condition] = (True, True)
-        distance_collector = Distance_Collector(self.src, self.graph)
+        distance_collector = get_distance_collector(self.src, self.graph)
         distance_collector.initialize(constraints, is_mono=mono)
         # result = AND(LE_const(distance_collector.get_distance(self.sink), len(self.graph.nodes), constraints),
         #              distance_collector.get_reachable(self.sink), constraints)
@@ -660,8 +660,8 @@ class Reachability():
             # max_distance = len(distance.values())
             op_distance = {}
 
+            print(len(distance), self.cut_max_d)
             for node in distance:
-                # print(max_distance, self.cut_max_d)
                 op_distance[node] = (self.cut_max_d - distance[node])
 
             t_final = self.unary_reach_cyclic(op_distance, constraints)

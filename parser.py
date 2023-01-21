@@ -292,8 +292,12 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 # assert is_sat(constraints+new_constraints+global_inv)
             else:
                 # reach.encode(new_constraints, reach_cond = False)
+
                 hint = sorted(orig_lemma)[1:]
                 reach.collect_unreach(hint, new_constraints)
+
+                # reach.binary_encode(new_constraints, mono = False)
+                # is_drup = False
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
@@ -351,6 +355,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
             if not block_process:
                 sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
                                                      verified_lemmas, block_process=False, witness_reduction=witness_reduction)
+                is_drup = False
                 #verified_lemmas += sub_proofs
                 proofs.append(sub_proofs)
                 processed += 1
@@ -518,7 +523,14 @@ def write_binary_proof(lemmas, fp, chunk_size = 2 << 24):
     bytes = bytearray()
     for lemma in lemmas:
         for step in lemma:
-            bytes.append(97)
+            is_del = False
+            if isinstance(step, str):
+                is_del = step.startswith("d")
+                step = [int(l) for l in step.split()[1:-1]]
+            if is_del:
+                bytes.append(100)
+            else:
+                bytes.append(97)
             for l in step:
                 lit_to_binary(l, bytes)
             bytes.append(0x00)
