@@ -41,6 +41,7 @@ def get_blocked_proof(cnfs, block_assumptions, optimize=False, useProver=False):
             print("assumption invalid")
             assert False
         else:
+            print("finish solving")
             proofs = solver.get_proof()
             if optimize:
                 proofs = optimize_proof(final_collection, proofs)
@@ -75,6 +76,7 @@ def get_proof(cnfs, assumptions = None, optimize = False, useProver=False):
             print("assumption invalid")
             assert False
         else:
+            print("finish solving")
             proofs = solver.get_proof()
             if optimize:
                 proofs = optimize_proof(final_collection, proofs)
@@ -90,7 +92,7 @@ def _proof_block_cleanup(proof, assumption_lit, assumption_block):
         return assumption_block
     else:
         format_proof = [[int(l) for l in lemma.split()[:-1]] for lemma in proof if not lemma.startswith("d")]
-        step1 =  [[assumption_lit] + lemma for lemma in format_proof]  + assumption_block
+        step1 =  [[assumption_lit] + lemma for lemma in format_proof]  + assumption_block + ["d {} {}".format(assumption_lit, lemma) for lemma in proof if not lemma.startswith("d")]
         return step1
 
 def _proof_cleanup(proof, assumption_lit, assumptions):
@@ -110,8 +112,9 @@ def optimize_proof(input, proofs):
     write_proofs(proof_name, proofs)
     write_dimacs(input_name, input)
     try:
-        process = subprocess.Popen([drat_path, input_name, proof_name, "-p", "-l",  temp_file],
+        process = subprocess.Popen([drat_path, input_name, proof_name, "-l",  temp_file],
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        # print(" ".join([drat_path, input_name, proof_name, "-l",  temp_file]))
         process.communicate()
         with open(temp_file, 'r') as optimized_proof:
             proofs = [clause.strip() for clause in optimized_proof.readlines() if not clause.startswith('d')]

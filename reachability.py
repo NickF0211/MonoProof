@@ -146,6 +146,9 @@ class Reachability():
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
+    def is_default_encoded(self):
+        return self.encoded.get(_default_enabling_condition, None) == (True, True)
+
     def binary_encode(self, constraints, mono=False):
         if self.encoded.get(_default_enabling_condition, None) == (True, True):
             return self.lit

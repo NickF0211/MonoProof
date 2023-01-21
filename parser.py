@@ -201,7 +201,9 @@ def check_pure_cut(cuts):
 
 large_graph_edge_thresh_hold = 3000
 
-def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False, witness_reduction = True):
+def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process = False,
+                         witness_reduction = True,
+                         lemma_bitblast = False):
     #now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -276,7 +278,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 # assert is_sat(constraints + new_constraints + global_inv)
                 #reach.encode(new_constraints)
             else:
-                reach.encode(new_constraints)
+                reach.encode(new_constraints, unreach_cond= False, reach_cond = True)
 
         reach = Reachability.Collection.get(-l, None)
         if reach is not None:
@@ -292,12 +294,12 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 # assert is_sat(constraints+new_constraints+global_inv)
             else:
                 # reach.encode(new_constraints, reach_cond = False)
-
-                hint = sorted(orig_lemma)[1:]
-                reach.collect_unreach(hint, new_constraints)
-
-                # reach.binary_encode(new_constraints, mono = False)
-                # is_drup = False
+                if not lemma_bitblast:
+                    hint = sorted(orig_lemma)[1:]
+                    reach.collect_unreach(hint, new_constraints)
+                else:
+                    reach.binary_encode(new_constraints, mono = False)
+                    is_drup = False
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
@@ -322,7 +324,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
 
 
-def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction = True):
+def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction = True, lemma_bitblast = False):
     verified_lemmas = []
     proofs = []
     #the proof obligation need to be proved backwards
@@ -354,7 +356,8 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
         for lemma_confirmed in reverse_obligation:
             if not block_process:
                 sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
-                                                     verified_lemmas, block_process=False, witness_reduction=witness_reduction)
+                                                     verified_lemmas, block_process=False, witness_reduction=witness_reduction,
+                                                     lemma_bitblast = lemma_bitblast)
                 is_drup = False
                 #verified_lemmas += sub_proofs
                 proofs.append(sub_proofs)
@@ -363,7 +366,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
             else:
                 
                 sub_proofs, is_drup = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
-                                                  verified_lemmas, block_process=True, witness_reduction=witness_reduction)
+                                                  verified_lemmas, block_process=True, witness_reduction=witness_reduction, lemma_bitblast = lemma_bitblast)
                 if is_drup:
                     proofs.append(sub_proofs)
                     # processed += 1
