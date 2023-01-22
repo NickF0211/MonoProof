@@ -1,5 +1,5 @@
 from pysat.solvers import Cadical, Lingeling, Minisat22, Maplesat
-from logic_gate import OR, g_OR, g_AND
+from logic_gate import OR, g_OR, g_AND, lock_cache, unlock_cache
 from lit import write_proofs, write_dimacs
 import subprocess
 import os
@@ -26,8 +26,10 @@ def is_rat(cnfs):
 
 def get_blocked_proof(cnfs, block_assumptions, optimize=False, useProver=False):
     additional_clause = []
-    assumption_lits  = [g_OR(ass, additional_clause, forward=False) for ass in block_assumptions]
-    top_level_assumption = g_AND(assumption_lits, additional_clause, forward=False)
+    lock_cache()
+    assumption_lits  = [g_OR(ass, additional_clause) for ass in block_assumptions]
+    top_level_assumption = g_AND(assumption_lits, additional_clause)
+    unlock_cache()
     final_collection = cnfs + additional_clause + [[-top_level_assumption]]
 
     # try prover first
@@ -55,8 +57,10 @@ def get_proof(cnfs, assumptions = None, optimize = False, useProver=False):
         assumption_lit = None
         final_collection = cnfs
     elif isinstance(assumptions, type([])):
+        lock_cache()
         assumption_lit = g_OR(assumptions, additional_clause)
         final_collection = cnfs + additional_clause + [[-assumption_lit]]
+        unlock_cache()
     elif isinstance(assumptions, int):
         assumption_lit = assumptions
         final_collection = cnfs + additional_clause + [[-assumption_lit]]
@@ -96,6 +100,7 @@ def _proof_block_cleanup(proof, assumption_lit, assumption_block):
         return step1
 
 def _proof_cleanup(proof, assumption_lit, assumptions):
+
     proof.pop(-1)
     if len(proof) == 0:
         return [assumptions]

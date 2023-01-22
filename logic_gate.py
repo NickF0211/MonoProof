@@ -3,6 +3,19 @@ from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
 
+cache_lock = False
+def lock_cache():
+    global cache_lock
+    cache_lock = True
+
+def unlock_cache():
+    global cache_lock
+    cache_lock = False
+
+def is_cache_locked():
+    global cache_lock
+    return cache_lock
+
 def cache_rest():
     AND_cached_res_f.clear()
     AND_cached_res_b.clear()
@@ -11,6 +24,7 @@ def reset():
     l_reset()
     AND_cached_res_f.clear()
     AND_cached_res_b.clear()
+
 
 
 def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
@@ -62,10 +76,11 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
     if forward and predicate_lit_f is None:
         constraints.append([predicate_lit, -var1, -var2])
 
-    if forward:
-        AND_cached_res_f[(var1, var2)] = predicate_lit
-    if backward:
-        AND_cached_res_b[(var1, var2)] = predicate_lit
+    if not is_cache_locked():
+        if forward:
+            AND_cached_res_f[(var1, var2)] = predicate_lit
+        if backward:
+            AND_cached_res_b[(var1, var2)] = predicate_lit
 
     return predicate_lit
 
