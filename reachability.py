@@ -415,23 +415,16 @@ class Reachability():
                 if node in cache:
                     return cache[node]
                 else:
-                    result = new_lit()
+                    options = []
+                    for target, edge in self.get_incoming(get_node(self.graph, node)).items():
+                        options.append(AND(get_reach(target, cache), edge.lit, constraints, forward=False))
+                    result = g_OR(options, constraints, forward=False)
                     cache[node] = result
                     return result
             else:
                 return TRUE()
 
         cache = {}
-        for node in distance:
-            node_reach = get_reach(node, cache)
-            options = []
-            for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                if target in distance:
-                    options.append(get_reach(target, cache))
-                else:
-                    options.append(edge.lit)
-            constraints.append(
-                [IMPLIES(node_reach, g_OR(options, constraints, forward=False), constraints, forward=False)])
         return get_reach(self.sink, cache)
 
     def compute_unreachable_graph(self, cut):
@@ -626,10 +619,39 @@ class Reachability():
     def _BFS(self, node, cut, constraint, enabling_cond):
         pass
 
+    def record_sub_graph(self, file, distance, cut):
+        with open(file, 'w') as outfile:
+            written = set()
+            outfile.write("digraph 0 0 1 -1\n")
+            ext_id = len(self.graph.nodes)+1
+            outfile.write("node 1 {}\n".format(ext_id))
+            for node in distance:
+                if node not in written:
+                    outfile.write("node 1 {} \n".format(node.id))
+                    written.add(node)
+                for target, edge in self.get_incoming(get_node(self.graph, node)).items():
+                    if target not in written:
+                        if target in distance:
+                            outfile.write("node 1 {} \n".format(target.id))
+                            written.add(target)
+                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge.lit))
+                        else:
+                            outfile.write("node 1 {} \n".format(target.id))
+                            written.add(target)
+                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge.lit))
+                            for new_target, new_edge in self.get_incoming(get_node(self.graph, target)).items():
+                                outfile.write("edge 1 {} {} {} 1\n".format(ext_id, new_edge.target.id, new_edge.lit))
+
+            outfile.write("reach 1 {} {} {}\n".format(ext_id, self.sink.id, self.lit))
+            outfile.write("{} 0\n".format(self.lit))
+            for l in cut:
+                outfile.write("{} 0\n".format(-l))
+
     def collect_unreach(self, cut, constraint):
         cyclic = self.is_cyclic(cut)
         unreachable = self.compute_unreachable_graph_with_shortest_distance(cut)
         if not cyclic:
+            # self.record_sub_graph("sub_gnf.gnf", unreachable, cut)
             # if not cyclic, encode right the way
             t_final = self.unary_reach_acyclic(unreachable, constraint)
             constraint.append([-self.lit, t_final])
