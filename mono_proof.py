@@ -10,7 +10,7 @@ import graph
 import bv
 import predicate
 import logic_gate
-sys.setrecursionlimit(10000)
+sys.setrecursionlimit(1000000)
 
 monosat_path =  "/Users/nickfeng/monosat/monosat"
 drat_trim_orig_path = './drat-trim-orig'
@@ -291,9 +291,10 @@ def reset():
 
 if __name__ == "__main__":
     # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_instances_mid_gnf/instances_N_5_M_6_C_3800_id_FmpzCyNCYY_atp_0.gnf"
-    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_tiny/instances_N_5_M_2_C_40_id_xJEKwjwrkj_atp_1.gnf"
-    # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
-    # gnf = "ring.gnf"
+    # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_tiny/instances_N_5_M_2_C_40_id_xJEKwjwrkj_atp_1.gnf"
+    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
+    # gnf = "sub_gnf.gnf"
+    # gnf = "reach.gnf"
     # proof_file = "test.proof"
     # support_file = "test.support"
     #proof_file = "ti_amk52e04.proof"
@@ -314,7 +315,7 @@ if __name__ == "__main__":
                                                                 "-no-decide-graph-rnd",
                                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
                                                                 "-adaptive-history-clear=5"]
-    run_and_prove(gnf, running_opt=[], witness_reduction=False, backward_check=True, lemma_bitblast=True)
+    run_and_prove(gnf, running_opt=[], witness_reduction=False, backward_check=True, lemma_bitblast=False)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)
