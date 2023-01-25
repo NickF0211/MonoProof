@@ -22,18 +22,22 @@ def parse_edge_bv(attributes):
 def parse_file(file_name):
     with open(file_name, 'r') as file:
         cnfs = []
+        assumption = []
         solve_counter = 0
         while True:
             line = file.readline()
             if line:
-                if not parse_line(line, cnfs):
+                new_assumption = []
+                if not parse_line(line, cnfs, new_assumption):
                     assert False
                 else:
                     if line.startswith("solve"):
+                        assumption = new_assumption
                         solve_counter += 1
                         if solve_counter > 1:
                             print("incremental solving mode is not supported")
             else:
+                cnfs += assumption
                 return cnfs
 
 
@@ -57,7 +61,7 @@ def parse_header(attributes):
 ignore_list = ["node", "symbol", "priority"]
 
 
-def parse_line(line, cnfs):
+def parse_line(line, cnfs, assumptions= None):
     if not line.strip():
         # if there are formatting issue  with the line, skip
         return True
@@ -120,8 +124,9 @@ def parse_line(line, cnfs):
             return True
         elif header == "solve":
             target_lits = [add_lit(int(i)) for i in line_token[1:]]
-            for l in target_lits:
-                cnfs.append([l])
+            if assumptions:
+                for l in target_lits:
+                    assumptions.append([l])
             return True
         else:
             print(line)
@@ -307,6 +312,11 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
                 if not lemma_bitblast:
                     hint = sorted(orig_lemma)[1:]
                     reach.collect_unreach(hint, new_constraints)
+                    # if not is_rat(new_constraints + global_inv, orig_lemma):
+                    #     print(orig_lemma)
+                    #     print(hint)
+                    #     reach.collect_unreach(hint, new_constraints)
+
                 else:
                     # hint = sorted(orig_lemma)[1:]
                     # reachable = reach.compute_unreachable_graph_with_shortest_distance(hint)
