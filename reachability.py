@@ -330,7 +330,7 @@ class Reachability():
                     t_final = self.unary_reach_cyclic(distance, constraint)
                     self.total_encoded_distance += (max_distance * max_distance)
                 else:
-                    t_final = self.unary_reach_acyclic(distance, constraint)
+                    t_final = self.unary_reach_acyclic(distance, constraint, cut)
             else:
                 explored = self.compute_unreachable_graph(cut)
                 # in case unreachable, the hint is a cut that separates the source from the sink
@@ -406,7 +406,7 @@ class Reachability():
 
         return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints, forward=False)
 
-    def unary_reach_acyclic(self, distance, constraints):
+    def unary_reach_acyclic(self, distance, constraints, cut):
         explored_nodes = sorted(distance.keys(), key = lambda v: distance[v], reverse=True)
         def get_reach(node, cache):
             if node == self.src:
@@ -418,7 +418,10 @@ class Reachability():
                 else:
                     options = []
                     for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                        options.append(AND(get_reach(target, cache), edge.lit, constraints, forward=False))
+                        if edge.lit in cut:
+                            options.append(edge.lit)
+                        else:
+                            options.append(AND(get_reach(target, cache), edge.lit, constraints, forward=False))
                     result = g_OR(options, constraints, forward=False)
                     cache[node] = result
                     return result
@@ -656,7 +659,7 @@ class Reachability():
         if not cyclic:
             # self.record_sub_graph("sub_gnf.gnf", unreachable, cut)
             # if not cyclic, encode right the way
-            t_final = self.unary_reach_acyclic(unreachable, constraint)
+            t_final = self.unary_reach_acyclic(unreachable, constraint, cut)
             constraint.append([-self.lit, t_final])
         else:
             self.cut_max_d = max(self.cut_max_d, len(unreachable))
