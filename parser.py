@@ -1,4 +1,5 @@
 from graph import parse_graph, parse_edge, parse_weighted_edge, add_edge
+from pb import parse_pb, PB
 from reachability import parse_reach
 from distance import parse_distance, Distance_LEQ
 from acyclic import parse_acyclic, Acyclic
@@ -111,7 +112,7 @@ def parse_line(line, cnfs, assumptions= None):
         elif header == "digraph":
             return parse_graph(line_token[1:])
         elif header == "pb":
-            return True
+            return parse_pb(line_token[1:])
         elif header == "acyclic":
             return parse_acyclic(line_token[1:])
         elif header == "amo":
@@ -614,9 +615,33 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
                 else:
                     break
 
+def preprocess_pb(gnf, output_gnf = None):
+    if not output_gnf:
+        output_gnf = reextension(gnf, "gnf", "_pb_encoded")
+    parse_file(gnf)
+    additional_cnfs = []
+    for pb in PB.collection:
+        pb.pre_encode(additional_cnfs)
+        pb.unary_encode(additional_cnfs)
+
+    with open(output_gnf, 'w') as outfile:
+        with open(gnf, 'r') as infile:
+            line = infile.readline()
+            while line:
+                if not line.startswith("pb"):
+                    outfile.write(line)
+                line = infile.readline()
+            # now write the encoded pb constraint
+            all_clauses = additional_cnfs + global_inv
+            for clause in all_clauses:
+                outfile.write("{} 0 \n".format(' '.join([str(b) for b in clause])))
+
+
+
+
 
 # if __name__ == "__main__":
-#     # parse_file("maze.gnf")
+#     preprocess_pb("/Users/nickfeng/mono_encoding/test_field/reach.gnf")
 #     # w1 = Distance_LEQ.Collection
 #     # w2 = w1.pop(1906)
 #     # constraint = []
@@ -625,7 +650,7 @@ def reformat_proof(proof_file, formated_proof, theory_steps):
 #     #     print()
 #     #     "{} 0 \n".format(' '.join([str(b) for b in c]))
 #     # print(constraint)
-#     scan_binary_proof("reach.proof")
+#     # scan_binary_proof("reach.proof")
 '''
 model = get_model(cnfs + global_inv)
 if model:
