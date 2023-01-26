@@ -407,6 +407,7 @@ class Reachability():
         return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints, forward=False)
 
     def unary_reach_acyclic(self, distance, constraints):
+        explored_nodes = sorted(distance.keys(), key = lambda v: distance[v], reverse=True)
         def get_reach(node, cache):
             if node == self.src:
                 return TRUE()
@@ -425,6 +426,8 @@ class Reachability():
                 return TRUE()
 
         cache = {}
+        for node in explored_nodes:
+            get_reach(node, cache)
         return get_reach(self.sink, cache)
 
     def compute_unreachable_graph(self, cut):
