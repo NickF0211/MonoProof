@@ -944,7 +944,7 @@ def parse_pb(tokens):
     weight_index = 3+ lit_size
     weight_size = int(tokens[weight_index])
     if weight_size:
-        cofs = [int(l) for l in tokens[weight_index: weight_index + weight_size]]
+        cofs = [int(l) for l in tokens[weight_index+1: weight_index + weight_size+1]]
     else:
         cofs = [0 for _ in range(lit_size)]
 
