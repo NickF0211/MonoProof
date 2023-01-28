@@ -619,6 +619,11 @@ def find_variable_order(lits, constraints, lit_to_pbs):
     print(ordering)
 
 
+from functools import reduce
+def find_gcd(list):
+    x = reduce(gcd, list)
+    return x
+
 def pb_normalize(cofs, lits, op, target):
     n_cofs, n_lits, n_op, n_target = cofs, lits, op, target
     # pass 1: ≤-constraints are changed into ≥-constraints by negating all constants
@@ -695,7 +700,7 @@ def pb_normalize(cofs, lits, op, target):
 
     # The coefficients of the LHS are divided by their greatest common divisor (“gcd”).
     # The RHS is replaced by “RHS/gcd”, rounded upwards
-    gcd_val = gcd(*[val for val in collection.values()])
+    gcd_val = find_gcd([val for val in collection.values()])
     for c in collection:
         collection[c] = collection[c] // gcd_val
     n_target = ceil(n_target / gcd_val)
