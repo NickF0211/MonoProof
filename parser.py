@@ -125,7 +125,7 @@ def parse_line(line, cnfs, assumptions= None):
             return True
         elif header == "solve":
             target_lits = [add_lit(int(i)) for i in line_token[1:]]
-            if assumptions:
+            if assumptions is not None:
                 for l in target_lits:
                     assumptions.append([l])
             return True

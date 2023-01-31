@@ -299,7 +299,8 @@ def reset():
 if __name__ == "__main__":
     # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_instances_mid_gnf/instances_N_5_M_6_C_3800_id_FmpzCyNCYY_atp_0.gnf"
     # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_tiny/instances_N_5_M_2_C_40_id_xJEKwjwrkj_atp_1.gnf"
-    gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
+    # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"
+    gnf = "/Users/nickfeng/mono_encoding/hub_and_spoke/hub.gnf"
     # gnf = "sub_gnf.gnf"
     # gnf = "/Users/nickfeng/mono_encoding/colored_graph/color_graph.gnf"
     # gnf = "reach.gnf"
