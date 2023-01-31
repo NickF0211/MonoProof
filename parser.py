@@ -220,7 +220,7 @@ large_graph_edge_thresh_hold = 3000
 
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process=False,
                          witness_reduction=True,
-                         lemma_bitblast=False):
+                         lemma_bitblast=False, graph_reduction =True):
     # now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -311,19 +311,18 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
             else:
                 # reach.encode(new_constraints, reach_cond = False)
                 if not lemma_bitblast:
-                    hint = sorted(orig_lemma)[1:]
-                    reach.collect_unreach(hint, new_constraints)
-                    # if not is_rat(new_constraints + global_inv, orig_lemma):
-                    #     print(orig_lemma)
-                    #     print(hint)
-                    #     reach.collect_unreach(hint, new_constraints)
-
+                    if not graph_reduction:
+                        reach.encode(new_constraints, unreach_cond=True, reach_cond=False)
+                    else:
+                        hint = sorted(orig_lemma)[1:]
+                        reach.collect_unreach(hint, new_constraints)
                 else:
                     # hint = sorted(orig_lemma)[1:]
                     # reachable = reach.compute_unreachable_graph_with_shortest_distance(hint)
                     # print(len(reachable))
                     # assert reach.src not in reachable
-                    reach.binary_encode(new_constraints, mono=False)
+                    # reach.binary_encode(new_constraints, mono=False)
+                    reach.binary_encode_unreach_with_hint(new_constraints, sorted(orig_lemma)[1:])
                     is_drup = False
                     # assert not is_sat(new_constraints+global_inv+[[-l] for l in orig_lemma])
 
@@ -349,7 +348,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
 
 def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction=True,
-                          lemma_bitblast=False):
+                          lemma_bitblast=False, graph_reduction = True):
     # cache_rest()
     verified_lemmas = []
     proofs = []
@@ -384,7 +383,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                 sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
                                                      verified_lemmas, block_process=False,
                                                      witness_reduction=witness_reduction,
-                                                     lemma_bitblast=lemma_bitblast)
+                                                     lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
                 is_drup = False
                 # verified_lemmas += sub_proofs
                 proofs.append(sub_proofs)
@@ -396,7 +395,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                                                            new_constraints.content,
                                                            verified_lemmas, block_process=True,
                                                            witness_reduction=witness_reduction,
-                                                           lemma_bitblast=lemma_bitblast)
+                                                           lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
                 if is_drup:
                     proofs.append(sub_proofs)
                     # processed += 1
@@ -641,6 +640,11 @@ def preprocess_pb(gnf, output_gnf = None):
 
 
 # if __name__ == "__main__":
+#     line = ' '.join(['pb', '<=', '2', '24', '22855', '22856', '22857', '22858', '22859', '22860', '22861', '22862', '22863', '22864', '22865',
+#      '22866', '70672', '70673', '70674', '70675', '70676', '70677', '70678', '70679', '70680', '70681', '70682',
+#      '70683', '24', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1',
+#      '1', '1', '1', '1'])
+#     parse_line(line, [])
 #     preprocess_pb("/Users/nickfeng/mono_encoding/test_field/reach.gnf")
 #     # w1 = Distance_LEQ.Collection
 #     # w2 = w1.pop(1906)

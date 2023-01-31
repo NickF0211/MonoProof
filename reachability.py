@@ -146,6 +146,54 @@ class Reachability():
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
+
+    def binary_encode_unreach_with_hint(self, constraints, hint):
+        explored  = self.compute_unreachable_graph(hint)
+        bv_size = len(N_to_bit_array(len(explored)))
+
+        def get_distance(node, distance):
+            result = distance.get(node, None)
+            if result is None:
+                if node == self.src or node not in explored:
+                    distance[node] = const_to_bv(0)
+                else:
+                    distance[node] = new_bv(bv_size, True)
+                return distance[node]
+            else:
+                return result
+
+        def get_reachable(node, reachable):
+            result = reachable.get(node, None)
+            if result is None:
+                if node == self.src or node not in explored:
+                    reachable[node] = TRUE()
+                else:
+                    reachable[node] = new_lit()
+                return reachable[node]
+            else:
+                return result
+
+        distance = {}
+        reachable ={}
+
+        for node in explored:
+            if node != self.src:
+                temp_constraints = []
+                for target, edge in self.get_incoming(node).items():
+                    if on_cut(edge, hint, is_edge_lit=True):
+                        temp_constraints.append(edge.lit)
+                    else:
+                        successor = Equal(get_distance(node, distance), add(get_distance(target,distance), const_to_bv(1)),
+                                          constraints)
+                        temp_constraints.append(
+                            g_AND([successor, edge.lit, get_reachable(target, reachable)], constraints))
+                constraints.append(
+                    [IMPLIES(get_reachable(node, reachable), g_OR(temp_constraints, constraints), constraints)])
+
+        constraints.append([IMPLIES(self.lit, get_reachable(self.sink, reachable), constraints)])
+        return self.lit
+
+
     def binary_encode(self, constraints, mono=False):
         if self.encoded.get(_default_enabling_condition, None) == (True, True):
             return self.lit
