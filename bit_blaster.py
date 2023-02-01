@@ -2,6 +2,7 @@ import subprocess
 import sys
 import time
 
+import logic_gate
 from lit import write_dimacs
 from mono_proof import verify_full_proof, Record, reset, launch_monosat
 from parser import parse_file, Reachability, reextension
@@ -40,6 +41,7 @@ def parse_encode_solve_prove(gnf, record):
         record = Record("test")
     cnf = parse_file(gnf)
     encoding_start = time.time()
+    logic_gate.process_delayed_equality(cnf)
     cnf += pre_encode()
     for r in Reachability.Collection.values():
         r.binary_encode(cnf)
