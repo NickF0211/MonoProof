@@ -81,6 +81,7 @@ def parse_encode_solve_prove(gnf, record):
         proving_time = time.time() - proving_start
         record.set_proof_verification_time(proving_time)
         print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
+        record.set_proof_preparing_time(0)
 
 
 if __name__ == "__main__":
