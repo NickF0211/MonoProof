@@ -21,8 +21,8 @@ def get_model(cnfs):
     else:
         return False
 
-def is_rat(cnfs):
-    return get_proof(cnfs, optimize=True) == ['0']
+def is_rat(cnfs, assumption):
+    return get_proof(cnfs, assumptions=assumption, optimize=True) == ['0']
 
 def get_blocked_proof(cnfs, block_assumptions, optimize=False, useProver=False):
     additional_clause = []
