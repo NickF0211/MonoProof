@@ -1,7 +1,7 @@
 from monosat import *
 import random
 from cidr import Cidr, extend_cidr_by_oct
-from node import C_Node, TGW, H_Node, SubNet, connect, S_Node
+from node import C_Node, TGW, H_Node, SubNet, connect, S_Node, LEVEL_PORTS
 from random_port_ip_generator import *
 from sg import SG
 
@@ -97,6 +97,12 @@ def tgw_instance(outputFile, lb=5, ub=5, tgw_prb= 1.0, single_pred = False):
     # print(Solve(r))
 
 
+def reset():
+    TGW.collections.clear()
+    LEVEL_PORTS.clear()
+    S_Node.Receivers.clear()
+    S_Node.Senders.clear()
+    S_Node.Spokeds.clear()
 
 
 
