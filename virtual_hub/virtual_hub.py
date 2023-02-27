@@ -11,7 +11,7 @@ def create_VPC(g:Graph, lb, ub, tgw_prb, single_pred):
     central_hub_ip = Cidr(167772160, 8)
     central_hub = H_Node(g, central_hub_ip)
     connect(external_node, central_hub)
-    expand_to_child(g, central_hub, lb, ub, tgw_prb, on_path=True)
+    expand_to_child(g, central_hub, lb, ub, tgw_prb)
     target = random.choice(S_Node.Receivers)
     # l1_tgw = TGW.collections[0]
     # c2 = central_hub.subnets[0]
@@ -21,7 +21,7 @@ def create_VPC(g:Graph, lb, ub, tgw_prb, single_pred):
     r = encode_reach(external_node, target, single_pred=single_pred)
     return r
 
-def expand_to_child(g, parent: C_Node, lb, ub, tgw_prb, on_path = False):
+def expand_to_child(g, parent: C_Node, lb, ub, tgw_prb):
     p_cidr = parent.cidr
     if p_cidr.prefix_len == 32:
         return parent
@@ -30,24 +30,21 @@ def expand_to_child(g, parent: C_Node, lb, ub, tgw_prb, on_path = False):
         samples = random.sample(range(255), number_of_next_layers)
         head, tails = samples[0], samples[1:]
 
-        if random.random() <= tgw_prb or on_path:
+        if random.random() <= tgw_prb:
             tgw_cidr = extend_cidr_by_oct(p_cidr, head)
             tgw = TGW(g, tgw_cidr, tgw_cidr.extend(32))
             # TODO, check if it has an effect here
             connect(parent, tgw)
 
-        should_on_path = on_path
         for sample in tails:
             if p_cidr.prefix_len < 24:
                 subnet = SubNet(g, extend_cidr_by_oct(p_cidr, sample))
             else:
-                subnet = S_Node(g, ip=extend_cidr_by_oct(p_cidr, sample), is_internal=True, is_sender=False, on_path=should_on_path)
-
+                subnet = S_Node(g, ip=extend_cidr_by_oct(p_cidr, sample), is_internal=True, is_sender=False)
 
             parent.subnets.append(subnet)
             connect(parent, subnet)
-            expand_to_child(g, subnet, lb, ub, tgw_prb, should_on_path)
-            should_on_path = False
+            expand_to_child(g, subnet, lb, ub, tgw_prb)
 
 
 def encode_reach(src: C_Node, target:C_Node, single_pred = False):
@@ -102,7 +99,7 @@ def tgw_instance(outputFile, lb=5, ub=5, tgw_prb= 1.0, single_pred = False):
     g = Graph()
     r = create_VPC(g, lb, ub, tgw_prb, single_pred)
     print("start solving")
-    Assert(r)
+    Solve(r)
 
 
 def reset():
@@ -128,7 +125,7 @@ if __name__ == "__main__":
     children_lb = 3
     children_ub = 3
     tgw_probability = 1.0
-    single_pred = True
+    single_pred = False
     if len(sys.argv) >=3:
         children_lb = int(sys.argv[2])
     if len(sys.argv) >= 4:
