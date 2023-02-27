@@ -99,7 +99,7 @@ def tgw_instance(outputFile, lb=5, ub=5, tgw_prb= 1.0, single_pred = False):
     g = Graph()
     r = create_VPC(g, lb, ub, tgw_prb, single_pred)
     print("start solving")
-    Solve(r)
+    Solve(r, time_limit_seconds=1)
 
 
 def reset():
