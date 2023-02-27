@@ -154,7 +154,8 @@ class S_Node(C_Node):
     Senders = []
     Receivers = []
 
-    def __init__(self, g: Graph, ip: Cidr, is_sender=True, is_receiver=True, is_internal = False, parent_level=8):
+    def __init__(self, g: Graph, ip: Cidr, is_sender=True, is_receiver=True, is_internal = False, parent_level=8,
+                 on_path = False):
         super().__init__(g, ip)
         S_Node.Spokeds.append(self)
         self.is_sender = is_sender
@@ -168,7 +169,7 @@ class S_Node(C_Node):
 
         if is_sender:
             S_Node.Senders.append(self)
-        if is_receiver:
+        if is_receiver and on_path:
             S_Node.Receivers.append(self)
 
     def add_outbound_rule(self, edge, src_ip, dest_ip, src_port, dest_port):
