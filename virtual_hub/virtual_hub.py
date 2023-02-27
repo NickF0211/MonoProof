@@ -94,7 +94,7 @@ def tgw_instance(outputFile, lb=5, ub=5, tgw_prb= 1.0, single_pred = False):
     g = Graph()
     r = create_VPC(g, lb, ub, tgw_prb, single_pred)
     print("start solving")
-    # print(Solve(r))
+    Assert(r)
 
 
 def reset():
@@ -117,8 +117,8 @@ def reset():
 
 if __name__ == "__main__":
     outputFile = sys.argv[1]
-    children_lb = 5
-    children_ub = 5
+    children_lb = 3
+    children_ub = 3
     tgw_probability = 1.0
     single_pred = False
     if len(sys.argv) >=3:
