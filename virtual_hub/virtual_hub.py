@@ -54,14 +54,19 @@ def encode_reach(src: C_Node, target:C_Node, single_pred = False):
     processed = set()
     src_ip = [Var() for _ in range(32)]
     src_port = [Var() for _ in range(16)]
+    should_consider = set()
     src.process_constraints(0, src_ip, dest_ip, src_port, dest_port, processed)
-
+    if target in processed:
+        should_consider.add(0)
     # for every TGW,  spawn a new graph with brand new src ip and src port
     for frame_n in range(1, frame_nums+1):
         processed = set()
         src_ip = [Var() for _ in range(32)]
         src_port = [Var() for _ in range(16)]
         TGW.collections[frame_n-1].process_constraints(frame_n, src_ip, dest_ip, src_port, dest_port, processed)
+        if target in processed:
+            should_consider.add(frame_n)
+
 
     print("adding relational constraints")
     for tgw in TGW.collections:
@@ -69,7 +74,7 @@ def encode_reach(src: C_Node, target:C_Node, single_pred = False):
 
     # forever
     if not single_pred:
-        return Or([src.graph.reaches(src.get_node(0), target.get_node(i)) for i in range(frame_nums+1)])
+        return Or([src.graph.reaches(src.get_node(0), target.get_node(i)) for i in should_consider])
     else:
         final_target = src.graph.addNode("final_target")
         for i in range(frame_nums+1):
@@ -120,7 +125,7 @@ if __name__ == "__main__":
     children_lb = 3
     children_ub = 3
     tgw_probability = 1.0
-    single_pred = False
+    single_pred = True
     if len(sys.argv) >=3:
         children_lb = int(sys.argv[2])
     if len(sys.argv) >= 4:
