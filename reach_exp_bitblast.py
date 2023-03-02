@@ -1,10 +1,13 @@
 import os.path
+import signal
 import sys
 
 from bit_blaster import parse_encode_solve_prove
 from glob import glob
 
 from mono_proof import Record, reset
+
+instance_timeout = 5000
 
 if __name__ == "__main__":
     input_directory = sys.argv[1]
@@ -18,10 +21,18 @@ if __name__ == "__main__":
         for file in test_files:
             print(file)
             r = Record(os.path.basename(file))
+            signal.alarm(instance_timeout)
             try:
                 parse_encode_solve_prove(file, r)
-            except:
-                pass
-            o_file.write("{}\n".format(r.__str__()))
-            o_file.flush()
+                o_file.write("{}\n".format(r.__str__()))
+                o_file.flush()
+            except TimeoutError:
+                o_file.write("{} timeout ({} secs) \n".format(file, instance_timeout))
+            except Exception as e:
+                print("e")
+                o_file.write("{} error) \n".format(file, instance_timeout))
+            finally:
+                # reset alarm
+                signal.alarm(0)
+
             reset()
