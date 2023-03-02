@@ -9,6 +9,11 @@ from mono_proof import Record, reset
 
 instance_timeout = 5000
 
+def signal_handler(signum, frame):
+    if signum == signal.SIGALRM:
+        print("timeout {}".format(frame))
+        raise TimeoutError
+
 if __name__ == "__main__":
     input_directory = sys.argv[1]
     output_csv = sys.argv[2]
