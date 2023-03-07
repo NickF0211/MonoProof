@@ -55,6 +55,7 @@ def parse_encode_solve_prove(gnf, record):
     solving_start = time.time()
     res = run_solver_with_proof(output_cnf, proof_file)
     if isinstance(res, str):
+        record.set_verification_result("SAT")
         print("SAT")
     #     models = get_model(res)
     #     model_checking_gnf = reextension(gnf, "modelgnf")
@@ -69,6 +70,7 @@ def parse_encode_solve_prove(gnf, record):
     #
     #     assert not launch_monosat(model_checking_gnf, "ok.proof", "ok.support", record=Record)
     else:
+        record.set_verification_result("UNSAT")
         solving_time = time.time() - solving_start
         record.set_solving_time(solving_time)
         proving_start = time.time()

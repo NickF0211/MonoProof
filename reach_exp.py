@@ -10,6 +10,8 @@ if __name__ == "__main__":
 
     backward_check=True
     lemma_bitblast = False
+    graph_reduction = True
+
     for i,arg in enumerate(sys.argv):
         if sys.argv[i].startswith("--no-backward-check"):
             backward_check = False
@@ -22,6 +24,12 @@ if __name__ == "__main__":
             del(sys.argv[i])
             break
 
+    for i, arg in enumerate(sys.argv):
+        if sys.argv[i].startswith("--no-graph-reduction"):
+            graph_reduction = False
+            del (sys.argv[i])
+            break
+
     test_files = glob("{}/**/*.gnf".format(input_directory), recursive=True)
     with open(output_csv, 'w') as o_file:
         r = Record("test")
@@ -30,8 +38,8 @@ if __name__ == "__main__":
             print(file)
             r = Record(os.path.basename(file))
             try:
-                run_and_prove(file, r, running_opt=['-ruc'], witness_reduction=False, backward_check=backward_check,
-                              lemma_bitblast= lemma_bitblast)
+                run_and_prove(file, r, running_opt=[], witness_reduction=False, backward_check=backward_check,
+                              lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
             except:
                 pass
             o_file.write("{}\n".format(r.__str__()))
