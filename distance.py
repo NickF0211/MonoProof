@@ -104,7 +104,7 @@ class Distance_Collector():
                     if node != self.src:
                         temp_constraints = []
                         for target, edge in get_node(self.graph, node).incoming.items():
-                            successor = Equal(self.get_distance(node), add(self.get_distance(target), const_to_bv(1), constraints), constraints)
+                            successor = Equal(self.get_distance(node), add(self.get_distance(target), const_to_bv(1)), constraints)
                             temp_constraints.append(
                                 g_AND([successor, edge.lit, self.get_reachable(target)], constraints))
                         constraints.append([IMPLIES(self.get_reachable(node), g_OR(temp_constraints, constraints), constraints)])
@@ -113,7 +113,7 @@ class Distance_Collector():
                         constraints.append([IMPLIES(AND(self.get_reachable(node), edge.lit, constraints),
                                                     AND(GE(add(self.get_distance(node), const_to_bv(1), constraints),
                                                            self.get_distance(target), constraints),
-                                                        self.get_reachable(target),constraints), constraints
+                                                        self.get_reachable(target),constraints)
                                                     )])
             self.initialized = True
 
