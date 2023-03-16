@@ -3,7 +3,7 @@ from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality, CNF
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
 
-CNF_writer:CNFWriter = None
+CNF_writer = None
 def set_file_writer(writer:CNFWriter):
     global CNFWriter
     CNFWriter = writer
