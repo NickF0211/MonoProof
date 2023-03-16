@@ -70,10 +70,10 @@ def write_dimacs(filename, clauses):
             outfile.write("{} 0 \n".format(' '.join([str(b) for b in clause])))
 
 import shutil
-def rewrite_header(sourcefile, filename, cnf, addition_encoder):
+def rewrite_header(sourcefile, filename, cnf_len, addition_encoder):
     with open(sourcefile, 'r') as infile:
         with open(filename, 'w') as outfile:
-            clause_len = len(cnf)+ addition_encoder.size
+            clause_len = cnf_len + addition_encoder.size
             infile.readline().split()
             # if len(header) >= 4:
             #     clause_len = int(header[3]) + addition_encoder.size
