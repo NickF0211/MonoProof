@@ -2,6 +2,7 @@ from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality, CNF
 
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
+CACHE_CAP = 10000
 
 CNF_writer = None
 def set_file_writer(writer:CNFWriter):
@@ -97,6 +98,11 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
             AND_cached_res_b[(var1, var2)] = predicate_lit
 
     flushwriter()
+    if len(AND_cached_res_f) > CACHE_CAP:
+        AND_cached_res_f.clear()
+    if len(AND_cached_res_b)> CACHE_CAP:
+        AND_cached_res_b.clear()
+
     return predicate_lit
 
 def g_AND(var_body, constraints=global_inv, forward=True, backward=True):
