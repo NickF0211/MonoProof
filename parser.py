@@ -415,6 +415,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
         # if there is any pending reachability lemmas to encode
         for reach in Reachability.Collection.values():
             reach.encode_union(new_constraints.content)
+            new_constraints.flush()
 
         return proofs
 
