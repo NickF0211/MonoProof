@@ -65,6 +65,26 @@ class Reachability():
 
         Reachability.Collection[lit] = self
 
+    def free(self):
+        self.graph = None
+        self.src = None
+        self.sink = None
+        self.reachable = {}
+        self.distance = dict()
+        self.encoded = {}
+
+        self.unreach_hint_old_explored = None
+        self.unreach_hint_old_cut = None
+        self.old_flow_cut = None
+        self.old_edge_cut = None
+        self.old_node_obligations = {}
+        self.total_encoded_distance = 0
+        self.inscope = None
+        self.incoming = {}
+        self.outgoing = {}
+        self.union_unreachable = set()
+        self.cut_max_d = 0
+
     # trim away nodes that can not possible be in path between src and dest
     def trim_unreachable(self):
         source_reachable = set()
@@ -146,9 +166,8 @@ class Reachability():
 
         return OR(get_reachable(self.sink), NOT(g_AND(validity_constraints, constraints)), constraints)
 
-
     def binary_encode_unreach_with_hint(self, constraints, hint):
-        explored  = self.compute_unreachable_graph(hint)
+        explored = self.compute_unreachable_graph(hint)
         bv_size = len(N_to_bit_array(len(explored)))
 
         def get_distance(node, distance):
@@ -174,7 +193,7 @@ class Reachability():
                 return result
 
         distance = {}
-        reachable ={}
+        reachable = {}
 
         for node in explored:
             if node != self.src:
@@ -183,7 +202,8 @@ class Reachability():
                     if on_cut(edge, hint, is_edge_lit=True):
                         temp_constraints.append(edge.lit)
                     else:
-                        successor = Equal(get_distance(node, distance), add(get_distance(target,distance), const_to_bv(1)),
+                        successor = Equal(get_distance(node, distance),
+                                          add(get_distance(target, distance), const_to_bv(1)),
                                           constraints)
                         temp_constraints.append(
                             g_AND([successor, edge.lit, get_reachable(target, reachable)], constraints))
@@ -192,7 +212,6 @@ class Reachability():
 
         constraints.append([IMPLIES(self.lit, get_reachable(self.sink, reachable), constraints)])
         return self.lit
-
 
     def binary_encode(self, constraints, mono=False):
         if self.encoded.get(_default_enabling_condition, None) == (True, True):
@@ -452,10 +471,12 @@ class Reachability():
                 gt_constraint.append(AND(edge.lit, get_reach(target, reach_cache), constraints, forward=False))
             constraints.append([-get_reach(node, reach_cache), g_OR(gt_constraint, constraints, forward=False)])
 
-        return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints, forward=False)
+        return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints,
+                   forward=False)
 
     def unary_reach_acyclic(self, distance, constraints, cut):
-        explored_nodes = sorted(distance.keys(), key = lambda v: distance[v], reverse=True)
+        explored_nodes = sorted(distance.keys(), key=lambda v: distance[v], reverse=True)
+
         def get_reach(node, cache):
             if node == self.src:
                 return TRUE()
@@ -677,7 +698,7 @@ class Reachability():
         with open(file, 'w') as outfile:
             written = set()
             outfile.write("digraph 0 0 1 -1\n")
-            ext_id = len(self.graph.nodes)+1
+            ext_id = len(self.graph.nodes) + 1
             outfile.write("node 1 {}\n".format(ext_id))
             for node in distance:
                 if node not in written:
