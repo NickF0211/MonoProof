@@ -134,11 +134,12 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     hint_map = parse_support(support_file)
     addition_encoder = CNFWriter(cnf_file)
     logic_gate.set_file_writer(addition_encoder)
+    cnf_len = len(cnf)
+    if not lemma_bitblast:
+        cnf.clear()
     proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record,
                                    witness_reduction = witness_reduction,
                                    lemma_bitblast= lemma_bitblast, graph_reduction = graph_reduction)
-    cnf_len = len(cnf)
-    cnf.clear()
     parsing_time_end = time.time()
     print("theory verification time {}".format(parsing_time_end - start_time))
     addition_encoder.content += global_inv
