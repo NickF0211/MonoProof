@@ -1,7 +1,21 @@
-from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality
+from lit import new_lit, global_inv, TRUE, FALSE, l_reset, Delayed_Equality, CNFWriter
 
 AND_cached_res_f = dict()
 AND_cached_res_b = dict()
+
+CNF_writer:CNFWriter = None
+def set_file_writer(writer:CNFWriter):
+    global CNFWriter
+    CNFWriter = writer
+
+def flushwriter():
+    global CNF_writer
+    if CNF_writer is not None:
+        if len(CNF_writer.content) > CNF_writer.cap:
+            CNF_writer.flush()
+
+
+
 
 cache_lock = False
 def lock_cache():
@@ -24,7 +38,7 @@ def reset():
     l_reset()
     AND_cached_res_f.clear()
     AND_cached_res_b.clear()
-
+    set_file_writer(None)
 
 
 def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
@@ -82,6 +96,7 @@ def AND(var1, var2, constraints=global_inv, forward=True, backward=True):
         if backward:
             AND_cached_res_b[(var1, var2)] = predicate_lit
 
+    flushwriter()
     return predicate_lit
 
 def g_AND(var_body, constraints=global_inv, forward=True, backward=True):
