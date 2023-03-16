@@ -137,13 +137,14 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record,
                                    witness_reduction = witness_reduction,
                                    lemma_bitblast= lemma_bitblast, graph_reduction = graph_reduction)
-
+    cnf_len = len(cnf)
+    cnf.clear()
     parsing_time_end = time.time()
     print("theory verification time {}".format(parsing_time_end - start_time))
     addition_encoder.content += global_inv
     addition_encoder.flush()
     addition_encoder.close()
-    rewrite_header(cnf_file, output_encoding, cnf, addition_encoder)
+    rewrite_header(cnf_file, output_encoding, cnf_len, addition_encoder)
     # shutil.move(optimizied_proof, proof_file)
     try:
         reformat_proof(optimizied_proof, output_proof, proofs)
