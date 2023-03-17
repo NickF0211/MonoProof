@@ -1,4 +1,7 @@
 from bv import *
+from collections import namedtuple
+
+Edge = namedtuple('Edge', 'cap lit')
 
 class Graph():
     Graphs = {}
@@ -39,27 +42,23 @@ class Node():
     def __str__(self):
         return "n:{}".format(self.id)
 
+# def Edge(cap=None, lit=None):
+#     if lit is None:
+#         lit = new_lit()
+#     return lit, cap
 
-class Edge():
-    def __init__(self, graph, src, target, cap=None, lit= None, id=-1):
-        self.graph = graph
-        if id == -1:
-            id = len(graph.edges)
-        self.id = id
-        self.src = src
-        self.target = target
-        self.cap = cap
+# class Edge():
+#     def __init__(self, src, target, cap=None, lit= None):
+#         self.src = src
+#         self.target = target
+#         self.cap = cap
+#
+#         if lit is None:
+#             self.lit = new_lit()
+#         else:
+#             assert isinstance(lit, type(0))
+#             self.lit = lit
 
-        if lit is None:
-            self.lit = new_lit()
-        else:
-            assert isinstance(lit, type(0))
-            self.lit = lit
-
-        graph.edges.append(self)
-
-    def __str__(self):
-        return "e:{}_{}".format(self.src.id, self.target.id)
 
 def get_node(graph, node):
     if isinstance(node, Node):
@@ -86,21 +85,21 @@ def add_edge(graph, src, target, lit = None, weight =None):
         assert target.incoming.get(src) == edge
         return edge
     else:
-        edge = Edge(graph, src, target, weight, lit=lit)
+        edge = Edge(weight, lit)
         src.outgoing[target] = edge
         target.incoming[src] = edge
         return edge
 
-def get_edge(graph, src, target):
-    if isinstance(graph, int):
-        graph = Graph.Graphs.get(graph, None)
-        assert graph is not None
-    assert isinstance(graph, Graph)
-    src = get_node(graph, src)
-    target = get_node(graph, target)
-    edge = src.outgoing.get(target, None)
-    assert edge is not None
-    return edge
+# def get_edge(graph, src, target):
+#     if isinstance(graph, int):
+#         graph = Graph.Graphs.get(graph, None)
+#         assert graph is not None
+#     assert isinstance(graph, Graph)
+#     src = get_node(graph, src)
+#     target = get_node(graph, target)
+#     edge = src.outgoing.get(target, None)
+#     assert edge is not None
+#     return edge
 
 
 def parse_graph(attributes):
