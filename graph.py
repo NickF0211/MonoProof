@@ -45,7 +45,7 @@ class Node():
 def Edge(cap=None, lit=None):
     if lit is None:
         lit = new_lit()
-    return lit, cap
+    return lit
 
 # class Edge():
 #     def __init__(self, src, target, cap=None, lit= None):
