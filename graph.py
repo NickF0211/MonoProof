@@ -1,7 +1,7 @@
 from bv import *
 from collections import namedtuple
 
-Edge = namedtuple('Edge', 'cap lit')
+
 
 class Graph():
     Graphs = {}
@@ -35,17 +35,17 @@ class Node():
         if id == -1:
             id = len(graph.nodes)
         self.id = id
-        self.incoming = {}
-        self.outgoing = {}
+        self.incoming = []
+        self.outgoing = []
         graph.nodes.append(self)
 
     def __str__(self):
         return "n:{}".format(self.id)
 
-# def Edge(cap=None, lit=None):
-#     if lit is None:
-#         lit = new_lit()
-#     return lit, cap
+def Edge(cap=None, lit=None):
+    if lit is None:
+        lit = new_lit()
+    return lit, cap
 
 # class Edge():
 #     def __init__(self, src, target, cap=None, lit= None):
@@ -80,15 +80,28 @@ def add_edge(graph, src, target, lit = None, weight =None):
     assert isinstance(graph, Graph)
     src = get_node(graph, src)
     target = get_node(graph, target)
-    edge = src.outgoing.get(target, None)
-    if edge is not None:
-        assert target.incoming.get(src) == edge
-        return edge
-    else:
-        edge = Edge(weight, lit)
-        src.outgoing[target] = edge
-        target.incoming[src] = edge
-        return edge
+
+    edge = Edge(weight, lit)
+    src.outgoing.append( (target, edge))
+    target.incoming.append((src, edge))
+    return edge
+#
+# def add_edge(graph, src, target, lit = None, weight =None):
+#     if isinstance(graph, int):
+#         graph = Graph.Graphs.get(graph, None)
+#         assert graph is not None
+#     assert isinstance(graph, Graph)
+#     src = get_node(graph, src)
+#     target = get_node(graph, target)
+#     edge = src.outgoing.get(target, None)
+#     if edge is not None:
+#         assert target.incoming.get(src) == edge
+#         return edge
+#     else:
+#         edge = Edge(weight, lit)
+#         src.outgoing[target] = edge
+#         target.incoming[src] = edge
+#         return edge
 
 # def get_edge(graph, src, target):
 #     if isinstance(graph, int):

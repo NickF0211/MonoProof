@@ -4,19 +4,19 @@ from distance import Distance_Collector, get_distance_collector
 
 
 def _default_enabling_condition(edge):
-    return edge.lit
+    return edge[0]
 
 
 def on_cut(edge, cut, is_edge_lit):
     if is_edge_lit:
-        return edge.lit in cut
+        return edge[0] in cut
     else:
         return edge in cut
 
 
 def on_path(edge, cut, is_edge_lit):
     if is_edge_lit:
-        return -edge.lit in cut
+        return -edge[0] in cut
     else:
         return edge in cut
 
@@ -94,7 +94,7 @@ class Reachability():
             source_reachable.add(head)
             if head == self.sink:
                 continue
-            for target, _ in get_node(self.graph, head).outgoing.items():
+            for target, _ in get_node(self.graph, head).outgoing:
                 if target not in source_reachable:
                     open_nodes.add(target)
 
@@ -105,7 +105,7 @@ class Reachability():
             sink_reachable_from.add(head)
             if head == self.src:
                 continue
-            for target, _ in get_node(self.graph, head).incoming.items():
+            for target, _ in get_node(self.graph, head).incoming:
                 if target not in sink_reachable_from:
                     open_nodes.add(target)
 
@@ -113,13 +113,13 @@ class Reachability():
 
         for node in self.inscope:
             incomings = {}
-            for target, edge in get_node(self.graph, node).incoming.items():
+            for target, edge in get_node(self.graph, node).incoming:
                 if target in self.inscope and target != self.sink:
                     incomings[target] = edge
             self.incoming[node] = incomings
 
             outgoings = {}
-            for target, edge in get_node(self.graph, node).outgoing.items():
+            for target, edge in get_node(self.graph, node).outgoing:
                 if target in self.inscope and target != self.src:
                     outgoings[target] = edge
             self.outgoing[node] = outgoings
@@ -200,13 +200,13 @@ class Reachability():
                 temp_constraints = []
                 for target, edge in self.get_incoming(node).items():
                     if on_cut(edge, hint, is_edge_lit=True):
-                        temp_constraints.append(edge.lit)
+                        temp_constraints.append(edge[0])
                     else:
                         successor = Equal(get_distance(node, distance),
                                           add(get_distance(target, distance), const_to_bv(1)),
                                           constraints)
                         temp_constraints.append(
-                            g_AND([successor, edge.lit, get_reachable(target, reachable)], constraints))
+                            g_AND([successor, edge[0], get_reachable(target, reachable)], constraints))
                 constraints.append(
                     [IMPLIES(get_reachable(node, reachable), g_OR(temp_constraints, constraints), constraints)])
 
@@ -458,7 +458,7 @@ class Reachability():
                     continue
                 gt_constraint = []
                 for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                    gt_constraint.append(AND(edge.lit, get_distance(target, i - 1, cache), constraints, forward=False))
+                    gt_constraint.append(AND(edge[0], get_distance(target, i - 1, cache), constraints, forward=False))
                 cache[node] = (get_distance(node, i - 1, cache), g_OR(gt_constraint, constraints, forward=False))
 
             sink_d.append(get_distance(self.sink, i, cache))
@@ -468,7 +468,7 @@ class Reachability():
         for node in distance:
             gt_constraint = []
             for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                gt_constraint.append(AND(edge.lit, get_reach(target, reach_cache), constraints, forward=False))
+                gt_constraint.append(AND(edge[0], get_reach(target, reach_cache), constraints, forward=False))
             constraints.append([-get_reach(node, reach_cache), g_OR(gt_constraint, constraints, forward=False)])
 
         return AND(get_reach(self.sink, reach_cache), g_OR(sink_d, constraints, forward=False), constraints,
@@ -487,10 +487,10 @@ class Reachability():
                 else:
                     options = []
                     for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                        if edge.lit in cut:
-                            options.append(edge.lit)
+                        if edge[0] in cut:
+                            options.append(edge[0])
                         else:
-                            options.append(AND(get_reach(target, cache), edge.lit, constraints, forward=False))
+                            options.append(AND(get_reach(target, cache), edge[0], constraints, forward=False))
                     result = g_OR(options, constraints, forward=False)
                     cache[node] = result
                     return result
@@ -678,7 +678,7 @@ class Reachability():
                     obligation = []
                     if cache.get((node, d), None) is None:
                         for target, edge in self.get_incoming(get_node(self.graph, node)).items():
-                            if edge.lit not in cut:
+                            if edge[0] not in cut:
                                 t_depth_var = self._DSF(target, d - 1, cut, constraint, cache, enabling_cond,
                                                         max_distance)
                             else:
@@ -709,13 +709,13 @@ class Reachability():
                         if target in distance:
                             outfile.write("node 1 {} \n".format(target.id))
                             written.add(target)
-                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge.lit))
+                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge[0]))
                         else:
                             outfile.write("node 1 {} \n".format(target.id))
                             written.add(target)
-                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge.lit))
+                            outfile.write("edge 1 {} {} {} 1\n".format(edge.src.id, edge.target.id, edge[0]))
                             for new_target, new_edge in self.get_incoming(get_node(self.graph, target)).items():
-                                outfile.write("edge 1 {} {} {} 1\n".format(ext_id, new_edge.target.id, new_edge.lit))
+                                outfile.write("edge 1 {} {} {} 1\n".format(ext_id, new_edge.target.id, new_edge[0]))
 
             outfile.write("reach 1 {} {} {}\n".format(ext_id, self.sink.id, self.lit))
             outfile.write("{} 0\n".format(self.lit))
@@ -776,7 +776,7 @@ class Reachability():
             prefix.add(current)
             visited.add(current)
             for target, edge in self.get_incoming(get_node(self.graph, current)).items():
-                if edge.lit not in cut:
+                if edge[0] not in cut:
                     if self._is_cyclic(cut, target, prefix, visited):
                         return True
 
