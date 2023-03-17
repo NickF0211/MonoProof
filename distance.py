@@ -36,14 +36,14 @@ class Distance_Collector():
                     for i in range(1, self.graph_size + 1):
                         gt_constraint = []
                         for target, edge in get_node(self.graph, node).incoming.items():
-                            gt_constraint.append(AND(edge.lit, self.get_unary_distance(target, i-1), constraints))
+                            gt_constraint.append(AND(edge, self.get_unary_distance(target, i-1), constraints))
                         constraints.append([IMPLIES(self.get_unary_distance(node, i), g_OR(gt_constraint, constraints),
                                                     constraints)])
 
                 #forward constraints:
                 for target, edge in get_node(self.graph, node).outgoing.items():
                     for i in range(0, self.graph_size):
-                        constraints.append([IMPLIES(AND(self.get_unary_distance(node, i), edge.lit, constraints),
+                        constraints.append([IMPLIES(AND(self.get_unary_distance(node, i), edge, constraints),
                                                    self.get_unary_distance(target, i + 1), constraints)])
 
 
@@ -87,12 +87,12 @@ class Distance_Collector():
                         temp_constraints = [-self.get_reachable(node)]
                         for target, edge in get_node(self.graph, node).incoming.items():
                             gt_distance = GT(self.get_distance(node), self.get_distance(target), constraints)
-                            temp_constraints.append( g_AND([gt_distance, edge.lit, self.get_reachable(target)], constraints))
+                            temp_constraints.append( g_AND([gt_distance, edge, self.get_reachable(target)], constraints))
                         constraints.append([g_OR(temp_constraints, constraints)])
 
                     #forward constraints:
                     for target, edge in get_node(self.graph, node).outgoing.items():
-                        cond1 = AND(edge.lit, self.get_reachable(node), constraints)
+                        cond1 = AND(edge, self.get_reachable(node), constraints)
                         constraints.append([IMPLIES(cond1,
                                                    AND(LE(self.get_distance(target),
                                                                 addition(self.get_distance(node), 1, constraints), constraints),
@@ -103,14 +103,14 @@ class Distance_Collector():
                 for node in self.graph.nodes:
                     if node != self.src:
                         temp_constraints = []
-                        for target, edge in get_node(self.graph, node).incoming.items():
+                        for target, edge in get_node(self.graph, node).incoming:
                             successor = Equal(self.get_distance(node), add(self.get_distance(target), const_to_bv(1)), constraints)
                             temp_constraints.append(
-                                g_AND([successor, edge.lit, self.get_reachable(target)], constraints))
+                                g_AND([successor, edge, self.get_reachable(target)], constraints))
                         constraints.append([IMPLIES(self.get_reachable(node), g_OR(temp_constraints, constraints), constraints)])
 
-                    for target, edge in get_node(self.graph, node).outgoing.items():
-                        constraints.append([IMPLIES(AND(self.get_reachable(node), edge.lit, constraints),
+                    for target, edge in get_node(self.graph, node).outgoing:
+                        constraints.append([IMPLIES(AND(self.get_reachable(node), edge, constraints),
                                                     AND(GE(add(self.get_distance(node), const_to_bv(1), constraints),
                                                            self.get_distance(target), constraints),
                                                         self.get_reachable(target),constraints)
