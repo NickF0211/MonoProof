@@ -38,7 +38,7 @@ if __name__ == "__main__":
             start = time.time()
             unsat = launch_monosat(file, "test.proof", "test.proof", record=record, extra_cnf="test.ecnf",
                                    options=options)
-            solving_with_proof = record.solving_time
+            solving_with_proof = time.time()-start
 
 
             print("{}, {}, {} \n".format(file, raw_run_time, solving_with_proof))

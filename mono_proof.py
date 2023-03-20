@@ -43,6 +43,7 @@ def prepare_proof(proof_file, obligation_file, record):
     return temp_file
 
 def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, options = None, record = None):
+    start_time = time.time()
     arugment_list = [monosat_path, gnf_file, "-drup-file={}".format(proof_file), "-proof-support={}".format(support_file),  "-no-reach-underapprox-cnf"]
     if extra_cnf is not None:
         arugment_list.append("-cnf-file={}".format(extra_cnf))
@@ -54,6 +55,7 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
+    record.set_solving_time(time.time() - start_time)
     res =  "s UNSATISFIABLE" in stdout
 
     if record is not None:
