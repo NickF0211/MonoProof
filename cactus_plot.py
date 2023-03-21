@@ -5,7 +5,7 @@ a = [1,2,3,4,5]
 b = [5,6,7,8]
 
 
-def plt_cactus(monosat_solving, bit_blast_solving, image_name = "solving_cactus.png"):
+def plt_cactus_solving(monosat_solving, bit_blast_solving, image_name = "solving_cactus.png"):
     plt.title("Solving instances")
     monosat_solving = np.sort(np.array(monosat_solving, dtype=int))
     bit_blast_solving = np.sort(np.array(bit_blast_solving, dtype=int))
