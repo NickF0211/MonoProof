@@ -36,9 +36,25 @@ if __name__ == "__main__":
 
             record = Record(file)
             start = time.time()
-            unsat = launch_monosat(file, "test.proof", "test.proof", record=record, extra_cnf="test.ecnf",
-                                   options=options)
-            solving_with_proof = record.solving_time
+
+            try:
+                arugment_list = [monosat_path, file, "-drup-file=test.proof",
+                                 "-proof-support=test.support", "-cnf-file=test.ecnf"]
+                if isinstance(options, str):
+                    arugment_list = arugment_list + options.split()
+                elif isinstance(options, type([])):
+                    arugment_list += options
+                arugment_list.append("-no-reach-underapprox-cnf")
+                start_time = time.time()
+                process = subprocess.Popen(arugment_list,
+                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                stdout, stderr = process.communicate(timeout=5000)
+                solving_with_proof = time.time() - start_time
+                reset()
+            except subprocess.TimeoutExpired:
+                solving_with_proof = 5000
+                reset()
+                pass
 
 
             print("{}, {}, {} \n".format(file, raw_run_time, solving_with_proof))
