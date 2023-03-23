@@ -137,8 +137,8 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
     addition_encoder = CNFWriter(cnf_file)
     logic_gate.set_file_writer(addition_encoder)
     cnf_len = len(cnf) + len(global_inv)
-    if not lemma_bitblast:
-        cnf.clear()
+    # if not lemma_bitblast:
+    #     cnf.clear()
     proofs = scan_proof_obligation(obligation_file, cnf, addition_encoder, hint_map, record,
                                    witness_reduction = witness_reduction,
                                    lemma_bitblast= lemma_bitblast, graph_reduction = graph_reduction)
