@@ -418,8 +418,19 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                         buffer.clear()
                         print(processed)
 
+
+
             if not lemma_bitblast and len(new_constraints.content) > new_constraints.cap and is_drup:
                 new_constraints.flush()
+
+        # clean up remaining proof
+        if block_process and buffer:
+            sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer,
+                                           optimize=True)
+            proofs.append(sub_proofs)
+            processed += len(buffer)
+            buffer.clear()
+            print(processed)
 
         # if there is any pending reachability lemmas to encode
         for reach in Reachability.Collection.values():
