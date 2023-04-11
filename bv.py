@@ -662,7 +662,7 @@ class Comparsion_const():
                     self.encoded = True
                     return self.lit
             elif self.op == NEQ_const:
-                term = Comparsion_const.Collection.get((self.bv1.id, self.constant, "=="), None)
+                term = Comparsion_const.Collection.get((self.bv1.id, self.const, "=="), None)
                 if term:
                     term.encode()
                     constraints.append(IFF(self.lit, -term.lit, constraints))
