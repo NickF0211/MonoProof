@@ -575,7 +575,7 @@ class Comparsion():
                 term = Comparsion.Collection.get((self.bv1.id, self.bv2, "=="), None)
                 if term:
                     term.encode()
-                    constraints.append(IFF(self.lit, -term.lit, constraints))
+                    constraints.append([IFF(self.lit, -term.lit, constraints)])
                     self.encoded = True
                     return self.lit
 
@@ -665,7 +665,7 @@ class Comparsion_const():
                 term = Comparsion_const.Collection.get((self.bv1.id, self.const, "=="), None)
                 if term:
                     term.encode()
-                    constraints.append(IFF(self.lit, -term.lit, constraints))
+                    constraints.append([IFF(self.lit, -term.lit, constraints)])
                     self.encoded = True
                     return self.lit
 
