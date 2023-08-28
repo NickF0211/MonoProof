@@ -1,7 +1,7 @@
 from bv import *
 from collections import namedtuple
 
-Edge = namedtuple('Edge', 'cap lit')
+# Edge = namedtuple('Edge', 'cap lit')
 
 class Graph():
     Graphs = {}
@@ -42,22 +42,22 @@ class Node():
     def __str__(self):
         return "n:{}".format(self.id)
 
-# def Edge(cap=None, lit=None):
-#     if lit is None:
-#         lit = new_lit()
-#     return lit, cap
+def Edge(cap=None, lit=None):
+    if lit is None:
+        lit = new_lit()
+    return lit, cap
 
-# class Edge():
-#     def __init__(self, src, target, cap=None, lit= None):
-#         self.src = src
-#         self.target = target
-#         self.cap = cap
-#
-#         if lit is None:
-#             self.lit = new_lit()
-#         else:
-#             assert isinstance(lit, type(0))
-#             self.lit = lit
+class Edge():
+    def __init__(self, src, target, cap=None, lit= None):
+        self.src = src
+        self.target = target
+        self.cap = cap
+
+        if lit is None:
+            self.lit = new_lit()
+        else:
+            assert isinstance(lit, type(0))
+            self.lit = lit
 
 
 def get_node(graph, node):
@@ -88,6 +88,7 @@ def add_edge(graph, src, target, lit = None, weight =None):
         edge = Edge(weight, lit)
         src.outgoing[target] = edge
         target.incoming[src] = edge
+        graph.edges.append(edge)
         return edge
 
 # def get_edge(graph, src, target):

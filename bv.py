@@ -528,6 +528,7 @@ def NEQ_const(bv1, const, constraint=global_inv):
 
 class Comparsion():
     Collection = {}
+    Lit_Collection = {}
 
     def __init__(self, bv1, bv2, op, lit=None):
         self.bv1 = bv1
@@ -555,11 +556,29 @@ class Comparsion():
         else:
             self.lit = lit
         Comparsion.Collection[(bv1.id, bv2.id, op)] = self
+        Comparsion.Lit_Collection[self.lit] = self
 
     def encode(self, constraints=global_inv):
         if self.encoded:
             return self.lit
         else:
+            if self.op == Equal:
+                term1 = Comparsion.Collection.get((self.bv1.id, self.bv2.id, ">="), None)
+                term2 = Comparsion.Collection.get((self.bv1.id, self.bv2.id, "<="), None)
+                if term1 and term2:
+                    term1.encode(constraints)
+                    term2.encode(constraints)
+                    constraints.append([IFF(self.lit, AND(term1.lit, term2.lit, constraints), constraints)])
+                    self.encoded = True
+                    return self.lit
+            elif self.op == NEqual:
+                term = Comparsion.Collection.get((self.bv1.id, self.bv2, "=="), None)
+                if term:
+                    term.encode()
+                    constraints.append([IFF(self.lit, -term.lit, constraints)])
+                    self.encoded = True
+                    return self.lit
+
             result_p = self.op(self.bv1, self.bv2, constraints)
             constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
@@ -599,6 +618,7 @@ def add_compare_const(bv1, const, op, lit):
 
 class Comparsion_const():
     Collection = {}
+    Lit_Collection = {}
 
     def __init__(self, bv1, const, op, lit=None):
         self.bv1 = bv1
@@ -626,15 +646,63 @@ class Comparsion_const():
         else:
             self.lit = lit
         Comparsion_const.Collection[(bv1.id, const, op)] = self
+        Comparsion_const.Lit_Collection[self.lit] = self
 
     def encode(self, constraints=global_inv):
         if self.encoded:
             return self.lit
         else:
+            if self.op == Equal_const:
+                term1 = Comparsion_const.Collection.get((self.bv1.id, self.const, ">="), None)
+                term2 = Comparsion_const.Collection.get((self.bv1.id, self.const, "<="), None)
+                if term1 and term2:
+                    term1.encode(constraints)
+                    term2.encode(constraints)
+                    constraints.append([IFF(self.lit, AND(term1.lit, term2.lit, constraints), constraints)])
+                    self.encoded = True
+                    return self.lit
+            elif self.op == NEQ_const:
+                term = Comparsion_const.Collection.get((self.bv1.id, self.const, "=="), None)
+                if term:
+                    term.encode()
+                    constraints.append([IFF(self.lit, -term.lit, constraints)])
+                    self.encoded = True
+                    return self.lit
+
+
             result_p = self.op(self.bv1, self.const, constraints)
             constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
             return self.lit
+
+def check_lemma_out_scope(lemma):
+    predicate = lemma[-1]
+    if predicate != 0:
+        compare = None
+        if predicate in Comparsion.Lit_Collection:
+            compare = Comparsion.Lit_Collection[predicate]
+            inputs = set(compare.bv1.get_body() + compare.bv2.get_body())
+        elif -predicate in Comparsion.Lit_Collection:
+            compare = Comparsion.Lit_Collection[-predicate]
+            inputs = set(compare.bv1.get_body() + compare.bv2.get_body())
+        elif predicate in Comparsion_const.Lit_Collection:
+            compare = Comparsion_const.Lit_Collection[predicate]
+            inputs = set(compare.bv1.get_body())
+        elif -predicate in Comparsion_const.Lit_Collection:
+            compare = Comparsion_const.Lit_Collection[-predicate]
+            inputs = set(compare.bv1.get_body())
+
+        if not compare:
+            return False
+        else:
+            # now we need to ensure everything else is a input to the predicate
+            for i in lemma[:-1]:
+                if i in inputs or -i in inputs:
+                    continue
+                else:
+                    return True
+        return True
+
 
 
 class EQ():

@@ -221,6 +221,8 @@ large_graph_edge_thresh_hold = 3000
 def process_theory_lemma(lemmas, support, constraints, new_constraints, verified_lemmas=None, block_process=False,
                          witness_reduction=True,
                          lemma_bitblast=False, graph_reduction =True):
+
+    num_bv_compare_predicates = 0
     # now scan the list, and check what has to be done
     if verified_lemmas is None:
         verified_lemmas = []
@@ -334,6 +336,13 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         if distance is not None:
             distance.unary_encode(new_constraints)
 
+        # in case multiple unrelated theory lemmas (no I/O relationship)
+        # are detected, we call a sat solver
+
+    if check_lemma_out_scope(orig_lemma):
+        is_drup = False
+
+
     if block_process:
         return [orig_lemma], is_drup
 
@@ -403,14 +412,25 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                 else:
                     buffer += sub_proofs
                     if (len(buffer) > 10000 or lemma_confirmed == reverse_obligation[-1]):
-                        sub_proofs = get_blocked_proof(global_inv + new_constraints.content, buffer, optimize=True)
+                        sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer, optimize=True)
                         proofs.append(sub_proofs)
                         processed += len(buffer)
                         buffer.clear()
                         print(processed)
 
+
+
             if not lemma_bitblast and len(new_constraints.content) > new_constraints.cap and is_drup:
                 new_constraints.flush()
+
+        # clean up remaining proof
+        if block_process and buffer:
+            sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer,
+                                           optimize=True)
+            proofs.append(sub_proofs)
+            processed += len(buffer)
+            buffer.clear()
+            print(processed)
 
         # if there is any pending reachability lemmas to encode
         for reach in Reachability.Collection.values():
