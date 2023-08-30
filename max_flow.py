@@ -153,7 +153,8 @@ class Maxflow():
         return  LT(sum_cap, self.target_flow, constraint)
 
     def _encode_in_flow(self, node, flows, constraint):
-        return bv_sum([flows.get(in_edge, 0) for _, in_edge in get_node(self.graph, node).incoming.items()], constraint, mono=True)
+        return bv_sum([flows.get(in_edge, 0) for _, in_edge in get_node(self.graph, node).incoming.items()], constraint,
+                      mono=False, is_dir_specific=False)
         # in_flow = 0
         # for _, in_edge in get_node(self.graph, node).incoming.items():
         #     flow = flows.get(in_edge, 0)
@@ -164,7 +165,7 @@ class Maxflow():
 
     def _encode_out_flow(self, node, flows, constraint):
         return bv_sum([flows.get(in_edge, 0) for _, in_edge in get_node(self.graph, node).outgoing.items()], constraint,
-                      mono=True)
+                      mono=False, is_dir_specific=False)
         # out_flow = 0
         # for _, out_edge in get_node(self.graph, node).outgoing.items():
         #     flow = flows.get(out_edge, 0)

@@ -38,8 +38,8 @@ if __name__ == "__main__":
 
     '''
     constraint.append([LT_const(add_mono(e02.cap, e21.cap, constraint), 11, constraint)])
-    unsat_hint = [e02, e13]
-    #mfunsat = mf05.encode_with_hint(set(unsat_hint), False, constraint)
+    unsat_hint = ([e02, e13],[])
+    # mfunsat = mf05.encode_with_hint(unsat_hint, False, constraint)
     mfunsat = mf05.encode(constraint)
     constraint.append([mfunsat])
     #constraint.append([LT_const(e02.cap, 200, constraint)])

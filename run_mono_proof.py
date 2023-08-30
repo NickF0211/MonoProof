@@ -27,6 +27,6 @@ if __name__ == "__main__":
             break
 
     r = Record("test")
-    run_and_prove(input_gnf, r, running_opt=[], witness_reduction=False, backward_check=backward_check,
+    run_and_prove(input_gnf, r, running_opt=[], witness_reduction=True, backward_check=backward_check,
                   lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
     print(str(r))

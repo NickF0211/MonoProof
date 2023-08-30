@@ -85,22 +85,22 @@ def add_edge(graph, src, target, lit = None, weight =None):
         assert target.incoming.get(src) == edge
         return edge
     else:
-        edge = Edge(weight, lit)
+        edge = Edge(src, target,weight, lit)
         src.outgoing[target] = edge
         target.incoming[src] = edge
         graph.edges.append(edge)
         return edge
 
-# def get_edge(graph, src, target):
-#     if isinstance(graph, int):
-#         graph = Graph.Graphs.get(graph, None)
-#         assert graph is not None
-#     assert isinstance(graph, Graph)
-#     src = get_node(graph, src)
-#     target = get_node(graph, target)
-#     edge = src.outgoing.get(target, None)
-#     assert edge is not None
-#     return edge
+def get_edge(graph, src, target):
+    if isinstance(graph, int):
+        graph = Graph.Graphs.get(graph, None)
+        assert graph is not None
+    assert isinstance(graph, Graph)
+    src = get_node(graph, src)
+    target = get_node(graph, target)
+    edge = src.outgoing.get(target, None)
+    assert edge is not None
+    return edge
 
 
 def parse_graph(attributes):
