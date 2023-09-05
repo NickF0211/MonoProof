@@ -5,7 +5,7 @@ import time
 import logic_gate
 from lit import write_dimacs
 from mono_proof import verify_full_proof, Record, reset, launch_monosat
-from parser import parse_file, Reachability, reextension
+from parser import parse_file, Reachability, reextension, Maxflow
 from predicate import pre_encode
 
 solver_path = "./kissat/build/kissat"
@@ -45,6 +45,9 @@ def parse_encode_solve_prove(gnf, record):
     cnf += pre_encode()
     for r in Reachability.Collection.values():
         r.binary_encode(cnf)
+    print("encode mf")
+    for mf in Maxflow.Collection.values():
+        mf.encode(cnf)
     encoding_time = time.time() - encoding_start
     record.set_proof_preparing_time(encoding_time)
     print("done encoding")
