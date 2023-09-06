@@ -11,9 +11,14 @@ from predicate import pre_encode
 
 solver_path = "./kissat/build/kissat"
 drat_trim_orig = "./drat-trim-orig"
+run_lim = ""
+run_lim_v_limit = 32000
 
 def run_solver_with_proof(cnf, proof):
     arugment_list = [solver_path, cnf, proof, "-q", "--time=60000"]
+    if run_lim:
+        arugment_list = [run_lim, "-v", str(run_lim_v_limit)] + arugment_list
+
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -100,6 +105,7 @@ def parse_encode_solve_prove(gnf, record):
         record.set_proof_verification_time(proving_time)
         print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
         record.set_proof_preparing_time(0)
+        os.remove(proof_file)
     os.remove(output_cnf)
 
 if __name__ == "__main__":
