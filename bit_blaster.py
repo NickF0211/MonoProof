@@ -1,9 +1,10 @@
+import os
 import subprocess
 import sys
 import time
 
 import logic_gate
-from lit import write_dimacs
+from lit import write_dimacs, CNFWriter, global_inv, rewrite_header
 from mono_proof import verify_full_proof, Record, reset, launch_monosat
 from parser import parse_file, Reachability, reextension, Maxflow
 from predicate import pre_encode
@@ -43,20 +44,32 @@ def parse_encode_solve_prove(gnf, record):
     encoding_start = time.time()
     logic_gate.process_delayed_equality(cnf)
     cnf += pre_encode()
+    cnf_file =  reextension(gnf, 'xextcnf', suffix="init_complete")
+    write_dimacs(cnf_file, cnf)
+    addition_encoder = CNFWriter(cnf_file)
+    logic_gate.set_file_writer(addition_encoder)
+    cnf_len = len(cnf) + len(global_inv)
     for r in Reachability.Collection.values():
-        r.binary_encode(cnf)
+        r.binary_encode(addition_encoder)
     print("encode mf")
     for mf in Maxflow.Collection.values():
-        mf.encode(cnf)
+        # logic_gate.lock_cache()
+        mf.encode(addition_encoder, pos = True, neg=False)
+        # logic_gate.unlock_cache()
     encoding_time = time.time() - encoding_start
     record.set_proof_preparing_time(encoding_time)
     print("done encoding")
     output_cnf = reextension(gnf, 'xextcnf', suffix="complete")
-    write_dimacs(output_cnf, cnf)
+    # write_dimacs(output_cnf, cnf)
+    addition_encoder.content += global_inv
+    addition_encoder.flush()
+    addition_encoder.close()
+    rewrite_header(cnf_file, output_cnf, cnf_len, addition_encoder)
     print("start solving")
     proof_file = reextension(output_cnf, "proof")
     solving_start = time.time()
     res = run_solver_with_proof(output_cnf, proof_file)
+    os.remove(cnf_file)
     if isinstance(res, str):
         record.set_verification_result("SAT")
         print("SAT")
@@ -87,7 +100,7 @@ def parse_encode_solve_prove(gnf, record):
         record.set_proof_verification_time(proving_time)
         print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
         record.set_proof_preparing_time(0)
-
+    os.remove(output_cnf)
 
 if __name__ == "__main__":
     # gnf = "/Users/nickfeng/mono_encoding/routing/UNSAT_gnf_mid_new/instances_N_5_M_4_C_800_id_OeBjeskxuS_atp_1.gnf"

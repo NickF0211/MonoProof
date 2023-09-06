@@ -102,6 +102,12 @@ class CNFWriter():
         self.content = []
 
 
+    def append(self, content):
+        self.content.append(content)
+        if len(self.content) > self.cap:
+            self.flush()
+
+
     def flush(self):
         for clause in self.content:
             self.file.write("{} 0 \n".format(' '.join([str(b) for b in clause])))

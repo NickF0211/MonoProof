@@ -23,6 +23,7 @@ if __name__ == "__main__":
     with open(output_csv, 'w') as o_file:
         r = Record("test")
         o_file.write("{}\n".format(r.print_header()))
+        o_file.flush()
         for file in test_files:
             print(file)
             r = Record(os.path.basename(file))
@@ -35,5 +36,6 @@ if __name__ == "__main__":
             except Exception as e:
                 print("e")
                 o_file.write("{} error) \n".format(file, instance_timeout))
+            o_file.flush()
 
             reset()
