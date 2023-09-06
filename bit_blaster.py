@@ -17,15 +17,18 @@ run_lim_v_limit = 32000
 def run_solver_with_proof(cnf, proof):
     arugment_list = [solver_path, cnf, proof, "-q", "--time=60000"]
     if run_lim:
-        arugment_list = [run_lim, "-v", str(run_lim_v_limit)] + arugment_list
+        arugment_list = [run_lim, "-s", str(run_lim_v_limit)] + arugment_list
 
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
     # print(stdout)
-    res = "s UNSATISFIABLE" in stdout
-    if res:
-        return res
+    usat = "s UNSATISFIABLE" in stdout
+    sat = "s SATISFIABLE" in stdout
+    if usat:
+        return 1
+    elif sat:
+        return 0
     else:
         return stdout
 
@@ -76,8 +79,8 @@ def parse_encode_solve_prove(gnf, record):
     res = run_solver_with_proof(output_cnf, proof_file)
     os.remove(cnf_file)
     if isinstance(res, str):
-        record.set_verification_result("SAT")
-        print("SAT")
+        record.set_verification_result("error")
+        print("error")
     #     models = get_model(res)
     #     model_checking_gnf = reextension(gnf, "modelgnf")
     #     with open(model_checking_gnf, 'w') as output_gnf:
@@ -91,21 +94,26 @@ def parse_encode_solve_prove(gnf, record):
     #
     #     assert not launch_monosat(model_checking_gnf, "ok.proof", "ok.support", record=Record)
     else:
-        record.set_verification_result("UNSAT")
-        solving_time = time.time() - solving_start
-        record.set_solving_time(solving_time)
-        proving_start = time.time()
-        res = verify_full_proof(output_cnf, proof_file)
-        if res:
-            print("Verified")
-            record.set_verification_result(True)
+        if res == 0:
+            record.set_verification_result("UNSAT")
+            solving_time = time.time() - solving_start
+            record.set_solving_time(solving_time)
+            proving_start = time.time()
+            res = verify_full_proof(output_cnf, proof_file)
+            if res:
+                print("Verified")
+                record.set_verification_result(True)
+            else:
+                record.set_verification_result(False)
+            proving_time = time.time() - proving_start
+            record.set_proof_verification_time(proving_time)
+            print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
+            record.set_proof_preparing_time(0)
         else:
-            record.set_verification_result(False)
-        proving_time = time.time() - proving_start
-        record.set_proof_verification_time(proving_time)
-        print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
-        record.set_proof_preparing_time(0)
-        os.remove(proof_file)
+            record.set_verification_result("SAT")
+            solving_time = time.time() - solving_start
+            record.set_solving_time(solving_time)
+    os.remove(proof_file)
     os.remove(output_cnf)
 
 if __name__ == "__main__":
