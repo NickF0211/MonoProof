@@ -13,11 +13,12 @@ solver_path = "./kissat/build/kissat"
 drat_trim_orig = "./drat-trim-orig"
 run_lim = ""
 run_lim_v_limit = 32000
+run_lim_t_limit = 5000
 
 def run_solver_with_proof(cnf, proof):
-    arugment_list = [solver_path, cnf, proof, "-q", "--time=60000"]
+    arugment_list = [solver_path, cnf, proof, "-q", "--time=5000"]
     if run_lim:
-        arugment_list = [run_lim, "-s", str(run_lim_v_limit)] + arugment_list
+        arugment_list = [run_lim, "-s", str(run_lim_v_limit), '-t', str(run_lim_t_limit)] + arugment_list
 
     process = subprocess.Popen(arugment_list,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
