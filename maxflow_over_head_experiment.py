@@ -23,8 +23,8 @@ with open("maxflow_overhead.csv", 'w') as outfile:
         record = Record(instance)
         # set timeout for three hours
         try:
+            acc_raw_solving = 0
             for i in range(Attempts):
-                acc_raw_solving = 0
                 raw = launch_raw_monosat(instance, options=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
                                                                    "-vsids-both", "-decide-theories",
                                                                    "-no-decide-graph-rnd",
@@ -33,8 +33,8 @@ with open("maxflow_overhead.csv", 'w') as outfile:
                 acc_raw_solving += record.raw_solving_time
             record.raw_solving_time =  acc_raw_solving / Attempts
 
+            acc_solving = 0
             for i in range(Attempts):
-                acc_solving = 0
                 res = launch_monosat(instance, reextension(instance, "proof"),
                                      reextension(instance, "support"),
                                      reextension(instance, "ecnf"),
