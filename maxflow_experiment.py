@@ -1,5 +1,5 @@
 import glob
-from mono_proof import launch_monosat, run_and_prove, Record, reextension
+from mono_proof import launch_raw_monosat, run_and_prove, Record, reextension
 import signal
 import os
 
@@ -43,6 +43,7 @@ with open("maxflow.csv", 'w') as outfile:
                 os.remove(reextension(instance, "obg"))
             except:
                 pass
+            outfile.flush()
 
     # inputs = file.readlines()
     # pre_content = ''.join(inputs[:-2])
