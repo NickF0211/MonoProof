@@ -701,7 +701,7 @@ def check_lemma_out_scope(lemma):
                     continue
                 else:
                     return True
-        return True
+        return False
 
 
 
