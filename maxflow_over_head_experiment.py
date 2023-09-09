@@ -16,7 +16,7 @@ Attempts = 5
 
 instances = glob.glob("gnfs/*.gnf")
 solver_location = "/Users/nickfeng/monosat_orig/monosat/monosat"
-with open("maxflow.csv", 'w') as outfile:
+with open("maxflow_overhead.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
     for instance in instances:
         record = Record(instance)
