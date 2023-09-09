@@ -247,8 +247,8 @@ class Record():
     def set_solving_time(self, solving_time):
         self.solving_time = solving_time
 
-    def set_raw_solving_time(self, solving_time):
-        self.raw_solving_time = solving_time
+    def set_raw_solving_time(self, raw_solving_time):
+        self.raw_solving_time = raw_solving_time
 
     def set_proof_preparing_time(self, proof_preparing_time):
         self.proof_preparing_time = proof_preparing_time
