@@ -19,6 +19,7 @@ solver_location = "/Users/nickfeng/monosat_orig/monosat/monosat"
 with open("maxflow_overhead.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
     for instance in instances:
+        print(instance)
         record = Record(instance)
         # set timeout for three hours
         try:
