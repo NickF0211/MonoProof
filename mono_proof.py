@@ -83,6 +83,47 @@ def  launch_monosat(gnf_file, proof_file, support_file, extra_cnf = None, option
 
     return res
 
+def  launch_raw_monosat(gnf_file, options = None, record = None, solver_location = None):
+    start_time = time.time()
+    if not solver_location:
+        solver_location = monosat_path
+    arugment_list = [solver_location, gnf_file,   "-no-reach-underapprox-cnf"]
+    if options is not None:
+        if isinstance(options, str):
+            arugment_list = arugment_list + options.split()
+        elif isinstance(options, type([])):
+            arugment_list += options
+    process = subprocess.Popen(arugment_list,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    stdout, stderr = process.communicate()
+    record.set_raw_solving_time(time.time() - start_time)
+    res =  "s UNSATISFIABLE" in stdout
+
+    if record is not None:
+        if res:
+            record.set_solving_result("UNSAT")
+        elif "s SATISFIABLE" in stdout:
+            record.set_solving_result("SAT")
+        else:
+            record.set_solving_result("Unknown/Error")
+
+    match = re.search(r"c total var nums: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_vars(int(match.group(1)))
+
+    match = re.search(r"c total var tlemmas: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_theory_lemma(int(match.group(1)))
+
+    match = re.search(r"c total var lemmas: (\d+)\n", stdout)
+    if match:
+        # Return the number as an integer
+        record.set_lemma(int(match.group(1)))
+
+    return res
+
 
 def verify_full_proof(cnf, proof_file):
 
@@ -176,6 +217,7 @@ class Record():
         self.vars = 0
         self.solving_result = "unknown"
         self.solving_time = -1
+        self.raw_solving_time = -1
         self.proof_preparing_time = -1
         self.proof_verification_time = -1
         self.lemma = 0
@@ -183,18 +225,18 @@ class Record():
         self.theory_obligation = 0
         self.verification_result = "unknown"
 
-        self.attribute_names = ["name", "solving_result", "solving_time",
+        self.attribute_names = ["name", "solving_result", "solving_time", "raw_solving_time"
                            "proof_preparing_time", "proof_verification_time",
                            "lemma", "theory_lemma", "theory_obligation",
                            "verification_result"]
 
-        self.header_names = ["Name", "Solving result", "Solving time",
+        self.header_names = ["Name", "Solving result", "Solving time", "Raw solving time",
                                 "Proof preparing time, Proof verification time",
                                 "Lemmas", "Theory lemmas", "Theory obligations",
                                 "Verification result"]
 
     def get_attributes(self):
-        return [self.name, self.solving_result, self.solving_time,
+        return [self.name, self.solving_result, self.solving_time, self.raw_solving_time,
                            self.proof_preparing_time, self.proof_verification_time,
                            self.lemma, self.theory_lemma, self.theory_obligation,
                            self.verification_result]
@@ -204,6 +246,9 @@ class Record():
 
     def set_solving_time(self, solving_time):
         self.solving_time = solving_time
+
+    def set_raw_solving_time(self, solving_time):
+        self.raw_solving_time = solving_time
 
     def set_proof_preparing_time(self, proof_preparing_time):
         self.proof_preparing_time = proof_preparing_time
