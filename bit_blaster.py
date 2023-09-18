@@ -53,32 +53,21 @@ def parse_encode_solve_prove(gnf, record):
     encoding_start = time.time()
     logic_gate.process_delayed_equality(cnf)
     cnf += pre_encode()
-    cnf_file =  reextension(gnf, 'xextcnf', suffix="init_complete")
-    write_dimacs(cnf_file, cnf)
-    addition_encoder = CNFWriter(cnf_file)
-    logic_gate.set_file_writer(addition_encoder)
-    cnf_len = len(cnf) + len(global_inv)
     for r in Reachability.Collection.values():
-        r.binary_encode(addition_encoder)
+        r.binary_encode(cnf)
     print("encode mf")
     for mf in Maxflow.Collection.values():
-        # logic_gate.lock_cache()
-        mf.encode(addition_encoder)
-        # logic_gate.unlock_cache()
+        mf.encode(cnf)
     encoding_time = time.time() - encoding_start
     record.set_proof_preparing_time(encoding_time)
     print("done encoding")
     output_cnf = reextension(gnf, 'xextcnf', suffix="complete")
-    # write_dimacs(output_cnf, cnf)
-    addition_encoder.content += global_inv
-    addition_encoder.flush()
-    addition_encoder.close()
-    rewrite_header(cnf_file, output_cnf, cnf_len, addition_encoder)
+    write_dimacs(output_cnf, cnf)
     print("start solving")
     proof_file = reextension(output_cnf, "proof")
     solving_start = time.time()
     res = run_solver_with_proof(output_cnf, proof_file)
-    os.remove(cnf_file)
+
     if isinstance(res, str):
         record.set_verification_result("error")
         print("error")
@@ -95,7 +84,7 @@ def parse_encode_solve_prove(gnf, record):
     #
     #     assert not launch_monosat(model_checking_gnf, "ok.proof", "ok.support", record=Record)
     else:
-        if res == 0:
+        if res == 1:
             record.set_verification_result("UNSAT")
             solving_time = time.time() - solving_start
             record.set_solving_time(solving_time)
@@ -111,6 +100,7 @@ def parse_encode_solve_prove(gnf, record):
             print("{},{},{},{}".format(gnf, encoding_time, solving_time, proving_time))
             record.set_proof_preparing_time(0)
         else:
+            print("SAT")
             record.set_verification_result("SAT")
             solving_time = time.time() - solving_start
             record.set_solving_time(solving_time)

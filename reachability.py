@@ -219,8 +219,6 @@ class Reachability():
         self.encoded[_default_enabling_condition] = (True, True)
         distance_collector = get_distance_collector(self.src, self.graph)
         distance_collector.initialize(constraints, is_mono=mono)
-        # result = AND(LE_const(distance_collector.get_distance(self.sink), len(self.graph.nodes), constraints),
-        #              distance_collector.get_reachable(self.sink), constraints)
         constraints.append([IFF(self.lit, distance_collector.get_reachable(self.sink), constraints)])
         return self.lit
 
