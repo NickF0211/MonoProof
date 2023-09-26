@@ -12,7 +12,7 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGALRM, signal_handler)
 
-instance_timeout = 20000
+instance_timeout = 5000
 instances = glob.glob("gnfs/*.gnf")
 with open("maxflow.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
@@ -25,7 +25,7 @@ with open("maxflow.csv", 'w') as outfile:
                                                                "-vsids-both", "-decide-theories",
                                                                "-no-decide-graph-rnd",
                                                                "-lazy-maxflow-decisions", "-conflict-min-cut",
-                                                               "-adaptive-history-clear=5"], witness_reduction=True)
+                                                               "-adaptive-history-clear=5"], witness_reduction=False, lemma_bitblast=True, graph_reduction=False)
             outfile.write(str(record) + '\n')
         except TimeoutError:
             outfile.write("{} timeout ({} secs) \n".format(instances, instance_timeout))
