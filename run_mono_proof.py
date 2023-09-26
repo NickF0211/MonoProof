@@ -8,6 +8,7 @@ if __name__ == "__main__":
     backward_check = True
     lemma_bitblast = False
     graph_reduction = True
+    witness_reduction = True
     for i, arg in enumerate(sys.argv):
         if sys.argv[i].startswith("--no-backward-check"):
             backward_check = False
@@ -26,7 +27,13 @@ if __name__ == "__main__":
             del (sys.argv[i])
             break
 
+    for i, arg in enumerate(sys.argv):
+        if sys.argv[i].startswith("--no-witness-reduction"):
+            witness_reduction = False
+            del (sys.argv[i])
+            break
+
     r = Record("test")
-    run_and_prove(input_gnf, r, running_opt=[], witness_reduction=True, backward_check=backward_check,
+    run_and_prove(input_gnf, r, running_opt=[], witness_reduction=witness_reduction, backward_check=backward_check,
                   lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
     print(str(r))
