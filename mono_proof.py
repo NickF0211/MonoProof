@@ -172,7 +172,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
         optimizied_proof = prepare_proof(proof_file, obligation_file, record)
     #optimizied_proof = proof_file
     parsing_time_end = time.time()
-    print("theory processing time {}".format(parsing_time_end - start_time), flush=True)
+    print("theory processing time {}".format(parsing_time_end - start_time), flush=True, file=sys.stderr)
     start_time = parsing_time_end
     hint_map = parse_support(support_file)
     addition_encoder = CNFWriter(cnf_file)
@@ -296,7 +296,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witnes
     solving_time = tick - start_time
     start_time = tick
     record.set_proof_preparing_time(solving_time)
-    print("proof preparing time: {}".format(solving_time), flush=True)
+    print("proof preparing time: {}".format(solving_time),  flush=True, file=sys.stderr)
     res = verify_full_proof(output_cnf, proof_file)
     if res:
         record.set_verification_result(True)
@@ -322,12 +322,12 @@ def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True
     proof_file = reextension(gnf, "proof")
     support_file = reextension(gnf, "support")
     extra_cnf = reextension(gnf, "ecnf")
-    print("start solving")
+    print("start solving for file {}".format(gnf),  flush=True, file=sys.stderr)
     unsat = launch_monosat(gnf, proof_file, support_file, record = record, extra_cnf = extra_cnf, options=running_opt)
     tick = time.time()
     solving_time = tick - start_time
     record.set_solving_time(solving_time)
-    print("solving with certificate time: {}".format(solving_time))
+    print("solving with certificate time: {}".format(solving_time),  flush=True, file=sys.stderr)
     if unsat:
         return prove(gnf, proof_file, support_file, record=record, extra_cnf = extra_cnf,
                      witness_reduction = witness_reduction, backward_check=backward_check,

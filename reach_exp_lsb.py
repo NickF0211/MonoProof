@@ -9,7 +9,7 @@ from parser import reextension
 
 
 
-instance_timeout = 3600
+instance_timeout = 10
 
 
 if __name__ == "__main__":
@@ -40,20 +40,22 @@ if __name__ == "__main__":
 
     test_files = glob("{}/**/*.gnf".format(input_directory), recursive=True)
     with open(output_csv, 'w') as o_file:
-        # r = Record("test")
-        # o_file.write("{}\n".format(r.print_header()))
+        r = Record("test")
+        o_file.write("{}\n".format(r.print_header()))
         for file in test_files:
             print(file)
             arugment_list = ["python3", "run_mono_proof.py", file, "--no-backward-check", "--lemma-bitblast", "--no-graph-reduction",
                              "--no-witness-reduction"]
 
-            process = subprocess.Popen(arugment_list,
-                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+            process = subprocess.Popen(arugment_list, stdout=subprocess.PIPE, universal_newlines=True)
 
             try:
                 stdout, stderr = process.communicate(timeout=instance_timeout)
+                o_file.write("{}\n".format(stdout.split('\n')[-1]))
             except subprocess.TimeoutExpired:
                 process.kill()
+                o_file.write("{}, timeout\n".format(file))
+                # o_file.write("{}\n".format(process.communicate()[0]))
             #
             # print(file)
             # r = Record(os.path.basename(file))
@@ -68,7 +70,6 @@ if __name__ == "__main__":
             #     print(e)
             #     o_file.write("{} error) \n".format(file, instance_timeout))
             finally:
-                o_file.write("{}\n".format(process.stdout))
                 try:
                     if os.path.exists(reextension(file, "proof")):
                         os.remove(reextension(file, "proof"))
