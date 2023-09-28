@@ -334,7 +334,6 @@ def run_and_prove(gnf, record = None, running_opt=None, witness_reduction = True
                      lemma_bitblast = lemma_bitblast, graph_reduction = graph_reduction)
     else:
         print("monosat decided the instance is SAT", file=sys.stderr)
-        print(str(record))
         return False
 
 def reset():

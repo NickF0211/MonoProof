@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
             try:
                 stdout, stderr = process.communicate(timeout=instance_timeout)
-                o_file.write("{}\n".format(stdout.split('\n')[-1]))
+                o_file.write("{}\n".format(stdout.split('\n')[-2]))
             except subprocess.TimeoutExpired:
                 process.kill()
                 o_file.write("{}, timeout\n".format(file))
