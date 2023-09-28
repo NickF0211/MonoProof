@@ -172,7 +172,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
         optimizied_proof = prepare_proof(proof_file, obligation_file, record)
     #optimizied_proof = proof_file
     parsing_time_end = time.time()
-    print("theory processing time {}".format(parsing_time_end - start_time))
+    print("theory processing time {}".format(parsing_time_end - start_time), flush=True)
     start_time = parsing_time_end
     hint_map = parse_support(support_file)
     addition_encoder = CNFWriter(cnf_file)
@@ -184,7 +184,7 @@ def verify_proof(gnf_file, proof_file, support_file, output_encoding, output_pro
                                    witness_reduction = witness_reduction,
                                    lemma_bitblast= lemma_bitblast, graph_reduction = graph_reduction)
     parsing_time_end = time.time()
-    print("theory verification time {}".format(parsing_time_end - start_time))
+    print("theory verification time {}".format(parsing_time_end - start_time), flush=True)
     addition_encoder.content += global_inv
     addition_encoder.flush()
     addition_encoder.close()
@@ -296,7 +296,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witnes
     solving_time = tick - start_time
     start_time = tick
     record.set_proof_preparing_time(solving_time)
-    print("proof preparing time: {}".format(solving_time))
+    print("proof preparing time: {}".format(solving_time), flush=True)
     res = verify_full_proof(output_cnf, proof_file)
     if res:
         record.set_verification_result(True)
@@ -306,7 +306,7 @@ def prove(gnf, proof_file, support_file, extra_cnf = None, record = None, witnes
     tick = time.time()
     solving_time = tick - start_time
     record.set_proof_verification_time(solving_time)
-    print("proof checking time: {}".format(solving_time))
+    print("proof checking time: {}".format(solving_time), flush=True)
     return res
 
 
