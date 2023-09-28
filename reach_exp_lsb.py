@@ -9,7 +9,7 @@ from parser import reextension
 
 
 
-instance_timeout = 10
+instance_timeout = 3600
 
 
 if __name__ == "__main__":
