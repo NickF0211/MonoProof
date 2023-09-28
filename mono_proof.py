@@ -22,7 +22,7 @@ def verify_theory(cnf_file, proof_file, obligation_file):
     process = subprocess.Popen([drat_path, cnf_file, proof_file, "-w", "-l", temp_file, "-T", obligation_file, "-C"],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, _ = process.communicate()
-    print(stdout)
+    # print(stdout)
     assert "s VERIFIED" in stdout
     return temp_file
 

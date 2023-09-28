@@ -426,7 +426,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
         # clean up remaining proof
         if block_process and buffer:
             sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer,
-                                           optimize=True)
+                                           optimize=False)
             proofs.append(sub_proofs)
             processed += len(buffer)
             buffer.clear()
