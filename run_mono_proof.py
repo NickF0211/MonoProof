@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     for i, arg in enumerate(sys.argv):
         if sys.argv[i].startswith("--solver-opt"):
-            options = sys.argv[i].split('=')[1]
+            options = sys.argv[i][13:]
             options.lstrip('"')
             options.rsplit('"')
             running_opt = options.split()
