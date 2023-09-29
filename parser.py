@@ -385,7 +385,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 
         reverse_obligation = obligations[::-1]
         processed = 0
-        block_process = True
+        block_process = False
         buffer = []
         for lemma_confirmed in reverse_obligation:
             if not block_process:
