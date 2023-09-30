@@ -8,7 +8,8 @@ from bv import parse_bv, parse_addition, parse_comparsion, parse_const_comparsio
 from lit import add_lit, write_dimacs, global_inv
 import os
 from predicate import encode_all, pre_encode
-from solver import is_sat, get_model, get_proof, get_blocked_proof, is_rat
+from solver import is_sat, get_model, get_proof, get_blocked_proof, is_rat, init_prover, get_prover, \
+    add_clause_to_prover
 from bv import BV
 from max_flow import *
 
@@ -351,13 +352,22 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
             proof = [orig_lemma], True
         else:
             print(orig_lemma)
-            proof = get_proof(constraints + global_inv + verified_lemmas + new_constraints, orig_lemma, True), True
+            proof = get_proof(orig_lemma, True), True
 
         return proof
 
 
 def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction=True,
                           lemma_bitblast=False, graph_reduction = True):
+    if lemma_bitblast:
+        init_prover()
+        add_clause_to_prover(constraints)
+        # add true
+        TRUE()
+        add_clause_to_prover(global_inv)
+        new_constraints.set_sat_prover(get_prover())
+
+
     # cache_rest()
     verified_lemmas = []
     proofs = []
@@ -385,11 +395,11 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 
         reverse_obligation = obligations[::-1]
         processed = 0
-        block_process = False
+        block_process = True
         buffer = []
         for lemma_confirmed in reverse_obligation:
             if not block_process:
-                sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints.content,
+                sub_proofs, _ = process_theory_lemma(lemma_confirmed, support, constraints, new_constraints,
                                                      verified_lemmas, block_process=False,
                                                      witness_reduction=witness_reduction,
                                                      lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
@@ -401,7 +411,7 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
             else:
 
                 sub_proofs, is_drup = process_theory_lemma(lemma_confirmed, support, constraints,
-                                                           new_constraints.content,
+                                                           new_constraints,
                                                            verified_lemmas, block_process=True,
                                                            witness_reduction=witness_reduction,
                                                            lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
@@ -412,7 +422,8 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
                 else:
                     buffer += sub_proofs
                     if (len(buffer) > 10000 or lemma_confirmed == reverse_obligation[-1]):
-                        sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer, optimize=True)
+                        # sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer, optimize=True)
+                        sub_proofs = get_blocked_proof(buffer, optimize=True)
                         proofs.append(sub_proofs)
                         processed += len(buffer)
                         buffer.clear()

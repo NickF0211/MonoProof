@@ -43,7 +43,7 @@ if __name__ == "__main__":
             del (sys.argv[i])
             break
 
-    r = Record("test")
+    r = Record(input_gnf)
     run_and_prove(input_gnf, r, running_opt=running_opt, witness_reduction=witness_reduction, backward_check=backward_check,
                   lemma_bitblast=lemma_bitblast, graph_reduction=graph_reduction)
     print(str(r))

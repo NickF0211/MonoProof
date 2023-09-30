@@ -100,12 +100,19 @@ class CNFWriter():
         self.cap = 10000
         self.file = open(output_file, mode)
         self.content = []
+        self.satprover= None
+
+    def set_sat_prover(self, prover):
+        self.satprover = prover
 
 
     def append(self, content):
         self.content.append(content)
         if len(self.content) > self.cap:
             self.flush()
+
+        if self.satprover:
+            self.satprover.add_clause(content)
 
 
     def flush(self):
