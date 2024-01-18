@@ -58,6 +58,7 @@ add monosat executable location to `monosat_path` in `mono_proof.py`
 
 4. Comparing with Bit-Blasting
    1. download and build kissat:
+      
       ```
       wget https://github.com/arminbiere/kissat/archive/refs/tags/rel-3.1.1.zip
       unzip rel-3.1.1.zip
@@ -65,6 +66,7 @@ add monosat executable location to `monosat_path` in `mono_proof.py`
       ./configure && make test 
       ```
     update `solver_path` in `bit_blast.py` to the built kissat executable
+   
     2. Launch 
          ```
             python3 maxflow_exp_bitblast.py BGA_Escape_benchmark maxflow_bb.csv #pure bit-blast for BGA
