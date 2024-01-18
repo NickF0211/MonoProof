@@ -374,7 +374,7 @@ if __name__ == "__main__":
                                                                 "-no-decide-graph-rnd",
                                                                 "-lazy-maxflow-decisions", "-conflict-min-cut",
                                                                 "-adaptive-history-clear=5"]
-    run_and_prove(gnf, running_opt=[], witness_reduction=False, backward_check=True, lemma_bitblast=False)
+    run_and_prove(gnf, running_opt=[], witness_reduction=True, backward_check=True, lemma_bitblast=False)
     #launch_monosat(gnf, proof_file, support_file, options=running_opt)
     # record = Record(gnf)
     # prove(gnf, proof_file, support_file=support_file, record=record)

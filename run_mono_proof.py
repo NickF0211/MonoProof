@@ -21,12 +21,12 @@ if __name__ == "__main__":
             lemma_bitblast = True
             del (sys.argv[i])
             break
-
-    for i, arg in enumerate(sys.argv):
-        if sys.argv[i].startswith("--no-graph-reduction"):
-            graph_reduction = False
-            del (sys.argv[i])
-            break
+    #
+    # for i, arg in enumerate(sys.argv):
+    #     if sys.argv[i].startswith("--no-graph-reduction"):
+    #         graph_reduction = False
+    #         del (sys.argv[i])
+    #         break
 
     for i, arg in enumerate(sys.argv):
         if sys.argv[i].startswith("--no-witness-reduction"):

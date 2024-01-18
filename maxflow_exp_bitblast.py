@@ -7,7 +7,7 @@ from glob import glob
 
 from mono_proof import Record, reset
 
-instance_timeout = 5000
+instance_timeout = 3600
 def signal_handler(signum, frame):
     if signum == signal.SIGALRM:
         print("timeout {}".format(frame))

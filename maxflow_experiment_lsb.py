@@ -12,9 +12,9 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGALRM, signal_handler)
 
-instance_timeout = 5000
-instances = glob.glob("gnfs/*.gnf")
-with open("maxflow.csv", 'w') as outfile:
+instance_timeout = 3600
+instances = glob.glob("BGA_Escape_benchmark/*.gnf")
+with open("maxflow_lsb.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
     for instance in instances:
         record = Record(instance)

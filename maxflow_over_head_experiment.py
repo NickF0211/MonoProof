@@ -15,7 +15,7 @@ instance_timeout = 5000
 Attempts = 5
 
 instances = glob.glob("gnfs/*.gnf")
-solver_location = "/Users/nickfeng/monosat_orig/monosat/monosat"
+solver_location = "{orig_monosat_executable}"
 with open("maxflow_overhead.csv", 'w') as outfile:
     outfile.write(Record("test").print_header() + '\n')
     for instance in instances:
@@ -37,7 +37,7 @@ with open("maxflow_overhead.csv", 'w') as outfile:
             for i in range(Attempts):
                 res = launch_monosat(instance, reextension(instance, "proof"),
                                      reextension(instance, "support"),
-                                     reextension(instance, "ecnf"),
+                                     extra_cnf=reextension(instance, "ecnf"),
                                     options=["-no-check-solution", "-verb=1", "-theory-order-vsids", "-no-decide-theories",
                                                                    "-vsids-both", "-decide-theories",
                                                                    "-no-decide-graph-rnd",
