@@ -650,7 +650,7 @@ def extract_bv_witness(witness):
             sum_id, other_id = sub_processed[0], sub_processed[1]
             current_addition = (sum_id, other_id)
         else:
-            print("unrecongized hint, skip")
+            #print("unrecongized hint, skip")
             continue
 
     final_processed.append((current_step, current_lit_dep, current_addition))
