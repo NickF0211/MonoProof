@@ -155,6 +155,15 @@ def parse_support(support_file):
                     key = [int(l) for l in key.split()]
                     key.sort()
                     hint_map[' '.join([str(l) for l in key])] = value
+                elif "BVW" in line:
+                    tokens = line.split("BVW")
+                    assert (len(tokens) == 2)
+                    value, key = tokens
+                    key = [int(l) for l in key.split()]
+                    raw_key = key.copy()
+                    key = list(set(key))
+                    key.sort()
+                    hint_map[' '.join([str(l) for l in key])] = value, raw_key
                 else:
                     continue
             else:
@@ -232,14 +241,29 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
     sup = support.get(' '.join([str(i) for i in lemmas]), None)
     processed_witness = set()
     is_drup = True
+    has_processed = False
     for l in lemmas:
+        # bv_compare = Comparsion.Lit_Collection.get(l, None)
+        # if bv_compare is not None:
+        #     print(l)
+        #     print(lemmas)
+        #     assert False
+        #
+        # bv_compare = Comparsion.Lit_Collection.get(-l, None)
+        # if bv_compare is not None:
+        #     print(-l)
+        #     print(lemmas)
+        #     assert False
+
         ac = Acyclic.Collection.get(l, None)
         if ac is not None:
+            has_processed = True
             ac.encode_acyclic_clause(new_constraints)
             assert False
 
         ac = Acyclic.Collection.get(-l, None)
         if ac is not None:
+            has_processed = True
             if sup is not None:
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -ac.lit:
@@ -254,6 +278,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         mf = Maxflow.Collection.get(l, None)
 
         if mf is not None:
+            has_processed = True
             if sup is not None and witness_reduction:
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == mf.lit:
@@ -271,6 +296,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
         mf = Maxflow.Collection.get(-l, None)
 
         if mf is not None:
+            has_processed = True
             if sup is not None and witness_reduction:
                 support_head = int(sup.split()[-2])
                 if sup not in processed_witness and support_head == -mf.lit:
@@ -290,6 +316,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
         reach = Reachability.Collection.get(l, None)
         if reach is not None:
+            has_processed = True
             if len(reach.graph.edges) > large_graph_edge_thresh_hold:
                 hint = sorted(orig_lemma)[:-1]
                 reach.encode_with_hint(hint, True, new_constraints)
@@ -305,7 +332,7 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
             #     threshold = 100
             # else:
             #     threshold = large_graph_edge_thresh_hold
-
+            has_processed = True
             if witness_reduction:
                 hint = sorted(orig_lemma)[1:]
                 reach.encode_with_hint(hint, False, new_constraints, force_distance=not witness_reduction)
@@ -331,16 +358,18 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
         distance = Distance_LEQ.Collection.get(l, None)
         if distance is not None:
+            has_processed = True
             distance.unary_encode(new_constraints)
 
         distance = Distance_LEQ.Collection.get(-l, None)
         if distance is not None:
+            has_processed = True
             distance.unary_encode(new_constraints)
 
         # in case multiple unrelated theory lemmas (no I/O relationship)
         # are detected, we call a sat solver
 
-    if check_lemma_out_scope(orig_lemma):
+    if not has_processed and check_compare_lemma(orig_lemma, new_constraints, sup):
         is_drup = False
 
 
@@ -359,13 +388,13 @@ def process_theory_lemma(lemmas, support, constraints, new_constraints, verified
 
 def scan_proof_obligation(obligation_file, constraints, new_constraints, support, record=None, witness_reduction=True,
                           lemma_bitblast=False, graph_reduction = True):
-    if lemma_bitblast:
-        init_prover()
-        add_clause_to_prover(constraints)
-        # add true
-        TRUE()
-        add_clause_to_prover(global_inv)
-        new_constraints.set_sat_prover(get_prover())
+    # if lemma_bitblast:
+    init_prover()
+    add_clause_to_prover(constraints)
+    # add true
+    TRUE()
+    add_clause_to_prover(global_inv)
+    new_constraints.set_sat_prover(get_prover())
 
 
     # cache_rest()
@@ -436,8 +465,10 @@ def scan_proof_obligation(obligation_file, constraints, new_constraints, support
 
         # clean up remaining proof
         if block_process and buffer:
-            sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer,
-                                           optimize=False)
+            sub_proofs = get_blocked_proof(buffer, optimize=True)
+            #
+            # sub_proofs = get_blocked_proof(global_inv + new_constraints.content + constraints, buffer,
+            #                                optimize=False)
             proofs.append(sub_proofs)
             processed += len(buffer)
             buffer.clear()

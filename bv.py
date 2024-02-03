@@ -71,6 +71,18 @@ class BV():
                 value += 2 ** (self.width - i - 1)
         return value
 
+    def get_bound(self, model):
+        ub, lb = (1 << self.width) - 1, 0
+        for i in range(self.width):
+            if self.get_var(i) in model:
+                lb += (1 << (self.width - i - 1))
+            if -self.get_var(i) in model:
+                ub -= (1 << (self.width - i - 1))
+        return ub, lb
+
+    def __repr__(self):
+        return "BV{}".format(self.id)
+
 
 def get_bv(id):
     return BV.Bvs.get(id)
@@ -117,6 +129,8 @@ def ntob(num):
 def GT_const_strict(bv1, const, constraints=global_inv, equal=False):
     if not equal:
         const = const + 1
+    if const > (1 << bv1.width) - 1:
+        return FALSE()
     const_bv = N_to_bit_array(const, bv1.width)
     return g_AND([bv1.get_var(i) for i in range(len(const_bv)) if const_bv[i] == 1], constraints)
 
@@ -128,12 +142,22 @@ def LT_const_strict(bv1, const, constraints=global_inv, equal=False):
     return g_AND([-bv1.get_var(i) for i in range(len(const_bv)) if const_bv[i] == 0], constraints)
 
 
+def cast_bool_to_lit(inbool):
+    if isinstance(inbool, bool):
+        if inbool is True:
+            return TRUE()
+        else:
+            return FALSE()
+    else:
+        return inbool
+
+
 def GT_const(bv1, const, constraints=global_inv, equal=False):
     if isinstance(bv1, int):
         if equal:
-            return bv1 >= const
+            return cast_bool_to_lit(bv1 >= const)
         else:
-            return bv1 > const
+            return cast_bool_to_lit(bv1 > const)
     if const > (2 ** bv1.width) - 1:
         return FALSE()
 
@@ -159,7 +183,7 @@ def GT_const(bv1, const, constraints=global_inv, equal=False):
         return g_OR(gts, constraints)
 
 
-def add(bv1, bv2, constraints=global_inv):
+def add(bv1, bv2, constraints=global_inv, input_bv3=None):
     if isinstance(bv1, int):
         bv1 = const_to_bv(bv1)
     if isinstance(bv2, int):
@@ -183,6 +207,17 @@ def add(bv1, bv2, constraints=global_inv):
         c_i = g_OR([AND(bit1, bit2, constraints), AND(bit1, c_i, constraints), AND(bit2, c_i, constraints)],
                    constraints)
     bv3.set_var(0, c_i)
+
+    if input_bv3 is not None:
+        for i in range(bv3.width):
+            r_i = bv3.width - 1
+            r_adjusted_i = input_bv3.width - 1 - i
+            if r_adjusted_i >= 0:
+                constraints.append([IFF(input_bv3.get_var(r_adjusted_i), bv3.get_var(r_i), constraints)])
+
+        if bv3.width < input_bv3.width:
+            for i in range(input_bv3.width, bv3.width):
+                constraints.append([IFF(input_bv3.get_var(i), FALSE(), constraints)])
     return bv3
 
 
@@ -192,7 +227,7 @@ Define addition operator that consider only the high bits of bv1 and bv2, the re
 '''
 
 
-def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backward = False, upper_bound = -1):
+def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward=True, backward=False, upper_bound=-1):
     if bv1.width < bv2.width:
         bv1.self_extend(bv2.width - bv1.width)
     elif bv1.width > bv2.width:
@@ -217,17 +252,17 @@ def add_upper(bv1, bv2, constriant=global_inv, bv3=None, forward = True, backwar
     if upper_bound > 0:
         except_lits = []
         if bv1.width + 1 > upper_bound:
-            except_lits += [bv1.get_var(i) for i in range(bv1.width - upper_bound + 1 )]
+            except_lits += [bv1.get_var(i) for i in range(bv1.width - upper_bound + 1)]
             bv1 = sub_bv(bv1, bv1.width - (upper_bound - 1), bv1.width)
         if bv2.width + 1 > upper_bound:
             except_lits += [bv2.get_var(i) for i in range(bv2.width - upper_bound + 1)]
             bv2 = sub_bv(bv2, bv2.width - (upper_bound - 1), bv2.width)
         if bv3.width > upper_bound:
-            new_bv3 = sub_bv(bv3, bv3.width - upper_bound , bv3.width)
+            new_bv3 = sub_bv(bv3, bv3.width - upper_bound, bv3.width)
         except_lit = g_OR(except_lits, constriant, backward=forward, forward=backward)
 
-    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant, forward = forward, backward = backward,
-                                  over_flows = except_lit )])
+    constriant.append([_add_upper(bv1, bv2, new_bv3, constriant, forward=forward, backward=backward,
+                                  over_flows=except_lit)])
     return bv3
 
 
@@ -394,8 +429,7 @@ def _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, i, constraint, sto
             return result
 
 
-def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False, over_flows = None):
-
+def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=False, over_flows=None):
     index = bv1.width
     t_AND = lambda a, b, constraint: AND(a, b, constraint, forward=forward, backward=backward)
     t_OR = lambda a, b, constraint: OR(a, b, constraint, forward=forward, backward=backward)
@@ -425,7 +459,8 @@ def _add_upper(bv1, bv2, bv3, constraint=global_inv, forward=True, backward=Fals
     accepted_condition = _get_upper_bound_condition(bv1, bv2, bv3, Ncarries_overs, 0, constraint, storage=cache_storage)
     if over_flows is None:
         over_flows = FALSE()
-    rules.append(OR(-bv3.get_var(0), OR(accepted_condition, over_flows, constraint, forward=False), constraint, forward=False))
+    rules.append(
+        OR(-bv3.get_var(0), OR(accepted_condition, over_flows, constraint, forward=False), constraint, forward=False))
 
     res = g_AND(rules, constraint, forward=False)
     return res
@@ -526,6 +561,228 @@ def NEQ_const(bv1, const, constraint=global_inv):
     return NOT(Equal_const(bv1, const, constraint))
 
 
+def get_bound_sign(op):
+    if op == GE or op == GT:
+        return False, True
+    if op == LE or op == LT:
+        return True, False
+    else:
+        # unsupported
+        assert False
+
+
+def negate(op):
+    if op == GE:
+        return LT
+    if op == GT:
+        return LE
+    if op == LT:
+        return GE
+    if op == Equal:
+        return NEqual
+    if op == NEqual:
+        return Equal
+    else:
+        # unsupport negate
+        assert False
+
+
+def _parse_by_op(instr, op):
+    tokens = instr.split(op)
+    bv_id, v = tokens[0], tokens[1]
+    bv1 = BV.Bvs[int(bv_id)]
+    value = int(v)
+    return (op, bv1, value)
+
+
+def op_to_str(op):
+    if op == GT:
+        return ">"
+    elif op == GE:
+        return ">="
+    elif op == LE:
+        return "<="
+    elif op == LT:
+        return "<"
+    elif op == Equal:
+        return "=="
+    elif op == NEqual:
+        return "!="
+
+
+def parse_bv_compare_signature(hint_str):
+    hint_str = hint_str.lstrip("bv ")
+    if '>=' in hint_str:
+        return _parse_by_op(hint_str, '>=')
+    elif '<=' in hint_str:
+        return _parse_by_op(hint_str, '<=')
+
+
+def extract_bv_witness(witness):
+    steps, hints = witness
+    steps = steps.split(',')
+    processed = []
+    for i in range(len(steps)):
+        s = steps[i]
+        refine_s = s.split(';')
+        processed.extend(refine_s)
+
+    final_processed = []
+    current_step = None
+    current_lit_dep = []
+    last_dep = 0
+    current_dep = 0
+
+    current_addition = None
+    for s in processed:
+        if s.startswith("bv"):
+            if current_step is not None:
+                # add what we have recoreded into the collection
+                final_processed.append((current_step, current_lit_dep, current_addition))
+                last_dep = current_dep
+                current_addition = None
+            current_step = parse_bv_compare_signature(s)
+        elif s.startswith('#'):
+            current_dep = int(s.lstrip('#'))
+            current_lit_dep = hints[last_dep:current_dep]
+        elif s.startswith(":"):
+            sub_processed = s.lstrip(':').rstrip('+').split('=')
+            sum_id, other_id = sub_processed[0], sub_processed[1]
+            current_addition = (sum_id, other_id)
+        else:
+            print("unrecongized hint, skip")
+            continue
+
+    final_processed.append((current_step, current_lit_dep, current_addition))
+    return final_processed
+
+
+class GE_DEP_node:
+
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+        self.deps = set()
+        self.support_lit = []
+        self.causes = None
+        self.vc = FALSE()
+
+    def add_dep(self, dep):
+        assert isinstance(dep, GE_DEP_node)
+        self.deps.add(dep)
+
+    def encode(self, constraints):
+        # in case what we have is a root
+        if not self.deps:
+            # in case if both are non-BV
+            if isinstance(self.lhs, BV):
+                assert not isinstance(self.rhs, BV)
+                # in this case, we need to create a new BV
+                return GT_const_strict(self.lhs, self.rhs, constraints, equal=True)
+            elif isinstance(self.rhs, BV):
+                assert  not isinstance(self.lhs, BV)
+                return LT_const_strict(self.rhs, self.lhs, constraints, equal=True)
+            else:
+                return TRUE() if self.lhs >= self.rhs else FALSE()
+        else:
+            if self.causes == "ADD":
+                valid =  g_AND([dep.encode(constraints) for dep in self.deps], constraints)
+                return AND(valid, self.vc)
+
+            else:
+                #Supported
+                return False
+
+
+def process_bv_addition_hint(cur_ge_node, op, sum_bv, part_bv, ubs, lbs, constraints):
+    if op == ">=":
+        bv = cur_ge_node.lhs
+        constant = cur_ge_node.rhs
+        if bv == part_bv:
+            # in this case, we have a self addition
+            assert lbs[sum_bv].rhs >= constant * 2
+            cur_ge_node.deps.add(lbs[sum_bv])
+            cur_ge_node.vc = GE(lbs[sum_bv].rhs, constant + constant, constraints)
+        else:
+            # in this case, we have a non self addition
+            assert lbs[sum_bv].rhs - ubs[part_bv].lhs >= constant
+            cur_ge_node.deps.add(lbs[sum_bv])
+            cur_ge_node.deps.add(ubs[part_bv])
+            cur_ge_node.vc = GE(lbs[sum_bv].rhs - ubs[part_bv].lhs, constant, constraints)
+    elif op == "<=":
+        bv = cur_ge_node.rhs
+        constant = cur_ge_node.lhs
+        if bv == part_bv:
+            assert ubs[sum_bv].lhs <= constant * 2
+            cur_ge_node.deps.add(ubs[sum_bv])
+            cur_ge_node.vc = LE(ubs[sum_bv].lhs, constant + constant, constraints)
+        else:
+            # in this case, we have a non-self addition
+            assert ubs[sum_bv].lhs - lbs[part_bv].rhs <= constant
+            cur_ge_node.deps.add(ubs[sum_bv])
+            cur_ge_node.deps.add(lbs[part_bv])
+            cur_ge_node.vc = LE(ubs[sum_bv].lhs - lbs[part_bv].rhs, constant, constraints)
+
+
+def build_dependency_graph(processed_dep, root, lit, constraints):
+    root_op, bv1, bv2 = root
+    ubs = {}
+    lbs = {}
+
+    for i in range(len(processed_dep) - 1, -1, -1):
+        op, bv, value = processed_dep[i][0]
+        dep = processed_dep[i][1]
+        addition_info = processed_dep[i][2]
+        if lit in dep:
+            # then the step should be  invalidated, skip
+            continue
+        if op == ">=":
+            cur_node = GE_DEP_node(bv, value)
+            cur_node.support_lit = dep
+            if bv in lbs:
+                if cur_node.rhs > lbs[bv].rhs:
+                    lbs[bv] = cur_node
+            else:
+                lbs[bv] = cur_node
+
+            # time to process additional info
+            if addition_info is not None:
+                sum_bv_id, part_bv_id = addition_info
+                sum_bv = BV.Bvs[int(sum_bv_id)]
+                part_bv = BV.Bvs[int(part_bv_id)]
+                process_bv_addition_hint(cur_node, op, sum_bv, part_bv, ubs, lbs, constraints)
+                cur_node.causes = "ADD"
+
+        elif op == "<=":
+            cur_node = GE_DEP_node(value, bv)
+            if bv in ubs:
+                if cur_node.lhs < ubs[bv].lhs:
+                    ubs[bv] = cur_node
+            else:
+                ubs[bv] = cur_node
+
+    if root_op == GE:
+        assert lbs[bv1].rhs >= ubs[bv2].lhs
+        lc_v = lbs[bv1].encode(constraints)
+        rc_v = ubs[bv2].encode(constraints)
+        return g_AND([GE( lbs[bv1].rhs, ubs[bv2].lhs, constraints),lc_v, rc_v ],constraints)
+    elif root_op == GT:
+        assert lbs[bv1].rhs > ubs[bv2].lhs
+        lc_v = lbs[bv1].encode(constraints)
+        rc_v = ubs[bv2].encode(constraints)
+        return g_AND([GT(lbs[bv1].rhs, ubs[bv2].lhs, constraints), lc_v, rc_v], constraints)
+    elif root_op == LE:
+        assert ubs[bv1].lhs <= lbs[bv2].rhs
+        lc_v = ubs[bv1].encode(constraints)
+        rc_v = lbs[bv2].encode(constraints)
+        return g_AND([LE(ubs[bv1].lhs, lbs[bv2].rhs, constraints), lc_v, rc_v], constraints)
+    elif root_op == LT:
+        assert ubs[bv1].lhs < lbs[bv2].rhs
+        lc_v = ubs[bv1].encode(constraints)
+        rc_v = lbs[bv2].encode(constraints)
+        return g_AND([LT(ubs[bv1].lhs, lbs[bv2].rhs, constraints), lc_v, rc_v], constraints)
+
+
 class Comparsion():
     Collection = {}
     Lit_Collection = {}
@@ -558,6 +815,9 @@ class Comparsion():
         Comparsion.Collection[(bv1.id, bv2.id, op)] = self
         Comparsion.Lit_Collection[self.lit] = self
 
+    def __repr__(self):
+        return "{} {} {}".format(self.bv1.__repr__(), op_to_str(self.op), self.bv2.__repr__())
+
     def encode(self, constraints=global_inv):
         if self.encoded:
             return self.lit
@@ -583,6 +843,47 @@ class Comparsion():
             constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
             return self.lit
+
+    def encode_witness(self, hints, polarity, constraints, witness=None):
+
+        if not polarity:
+            op = negate(self.op)
+        else:
+            op = self.op
+
+        result = self.lit if polarity else -self.lit
+
+        if witness is not None:
+            processed_witness = extract_bv_witness(witness)
+            encoded = build_dependency_graph(processed_witness, (op, self.bv1, self.bv2), result, constraints)
+            if encoded is not False:
+                return encoded
+
+        lhs_bound, rhs_bound = get_bound_sign(op)
+
+        # update bound
+        bv1_ub, bv1_lb = self.bv1.get_bound(hints)
+        bv2_ub, bv2_lb = self.bv2.get_bound(hints)
+
+        if lhs_bound and not rhs_bound:
+            condition1 = op(bv1_ub, bv2_lb, constraints)
+            if condition1 == FALSE():
+                return False
+            # bv1 <= bv1_ub  (not (bv1 > bv1_ub))
+            condition2 = NOT(GT_const_strict(self.bv1, bv1_ub, constraints, equal=False))
+            condition3 = GT_const_strict(self.bv2, bv2_lb, equal=True)
+            constraints.append([IMPLIES(AND([condition1, condition2, condition3], constraints), result)])
+        if not lhs_bound and rhs_bound:
+            condition1 = op(bv1_lb, bv2_ub, constraints)
+            if condition1 == FALSE():
+                return False
+            # bv1 >= bv1_lb
+            condition2 = GT_const_strict(self.bv1, bv1_lb, equal=True)
+            # bv2 <= bv2_ub  (not (bv2 > bv2_ub))
+            condition3 = NOT(GT_const_strict(self.bv2, bv2_ub, constraints, equal=False))
+            constraints.append([IMPLIES(g_AND([condition1, condition2, condition3], constraints), result)])
+
+        return result
 
 
 def add_compare(bv1, bv2, op, lit, constraints=global_inv):
@@ -669,11 +970,51 @@ class Comparsion_const():
                     self.encoded = True
                     return self.lit
 
-
             result_p = self.op(self.bv1, self.const, constraints)
             constraints.append([IFF(self.lit, result_p, constraints)])
             self.encoded = True
             return self.lit
+
+
+def is_compare_predicate(l):
+    if l in Comparsion.Lit_Collection:
+        return (Comparsion.Lit_Collection[l], True)
+    elif -l in Comparsion.Lit_Collection:
+        return (Comparsion.Lit_Collection[-l], False)
+    elif l in Comparsion_const.Lit_Collection:
+        return (Comparsion_const.Lit_Collection[l], True)
+    elif -l in Comparsion_const.Lit_Collection:
+        return (Comparsion_const.Lit_Collection[-l], False)
+    else:
+        return None
+
+
+def check_compare_lemma(lemma, constraints, sup):
+    predicates = []
+    others = []
+    for l in lemma:
+        result = is_compare_predicate(l)
+        if result is not None:
+            predicates.append(result)
+        else:
+            others.append(l)
+    if len(predicates) == 0:
+        return True
+    elif len(predicates) < 2:
+        main_predicate = predicates[0]
+        if isinstance(main_predicate, Comparsion_const):
+            return False
+        else:
+            p, polarity = main_predicate
+            # if number of predicates are less one, then we can prove the lemma via DRUP
+            result = p.encode_witness(set([-l for l in others]), polarity, constraints, witness=sup)
+            if result == False:
+                return True
+            else:
+                return False
+    else:
+        return True
+
 
 def check_lemma_out_scope(lemma):
     predicate = lemma[-1]
@@ -702,7 +1043,6 @@ def check_lemma_out_scope(lemma):
                 else:
                     return True
         return False
-
 
 
 class EQ():
@@ -762,9 +1102,12 @@ def parse_const_comparsion(attributes):
 
     return True
 
+
 from sortedcontainers import SortedList
-def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding = -1,
-           smart_finishing = False, duo = False, upper_bound =-1, linear = False):
+
+
+def bv_sum(items, constraints, mono=True, is_dir_specific=True, smart_encoding=-1,
+           smart_finishing=False, duo=False, upper_bound=-1, linear=False):
     if linear:
         if upper_bound >= 0:
             base_int = 0
@@ -774,7 +1117,8 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding
                 if isinstance(item, int):
                     base_int += items
                 else:
-                    base_bv = add_upper(base_bv, item, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                    base_bv = add_upper(base_bv, item, constraints, backward=False, forward=True,
+                                        upper_bound=upper_bound)
 
             if base_int == 0:
                 return base_bv
@@ -811,20 +1155,23 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding
                     next_depth = bv_depth.get(next, 0)
                     max_depth = max(cur_depth, next_depth)
                     if max_depth > smart_encoding or (smart_finishing and len(bv_items) <= 1):
-                        new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                        new_item = add_upper(cur, next, constraints, backward=False, forward=True,
+                                             upper_bound=upper_bound)
                     else:
                         new_item = add(cur, next, constraints)
-                    bv_depth[new_item] = max_depth+1
+                    bv_depth[new_item] = max_depth + 1
                 else:
                     if mono:
                         if is_dir_specific:
-                            new_item = add_upper(cur, next, constraints, backward=False, forward=True, upper_bound=upper_bound)
+                            new_item = add_upper(cur, next, constraints, backward=False, forward=True,
+                                                 upper_bound=upper_bound)
                         else:
                             new_item = add_mono(cur, next, constraints)
                     else:
                         if duo:
                             new_item = add(cur, next, constraints)
-                            new_item = add_upper(cur, next, constraints, bv3= new_item, backward=False, forward=True, upper_bound=upper_bound)
+                            new_item = add_upper(cur, next, constraints, bv3=new_item, backward=False, forward=True,
+                                                 upper_bound=upper_bound)
                         else:
                             new_item = add(cur, next, constraints)
 
@@ -836,11 +1183,12 @@ def bv_sum(items, constraints, mono=True, is_dir_specific = True, smart_encoding
                 if mono:
                     if is_dir_specific:
                         return add_upper(cur, const_to_bv(base_int), constraints, backward=False, forward=True,
-                                             upper_bound=upper_bound)
+                                         upper_bound=upper_bound)
                     else:
-                        return  add_mono(cur, const_to_bv(base_int), constraints)
+                        return add_mono(cur, const_to_bv(base_int), constraints)
                 else:
                     return add(cur, const_to_bv(base_int), constraints)
+
 
 def parse_comparsion(attributes):
     assert (len(attributes) == 4)
@@ -862,6 +1210,15 @@ def parse_bv(attributes):
     width = attributes[1]
     assert (len(attributes) == int(width) + 2)
     BV(int(width), [add_lit(int(i)) for i in (attributes[2:])[::-1]], int(id))
+    return True
+
+
+def check_lemma_bv_reasoning(lemma):
+    for l in lemma:
+        if (l not in Comparsion.Lit_Collection) and (l not in Comparsion_const.Lit_Collection) and (
+                -l not in Comparsion.Lit_Collection) and (-l not in Comparsion_const.Lit_Collection):
+            return False
+
     return True
 
 

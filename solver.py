@@ -9,6 +9,7 @@ from lit import get_lits_num
 
 drat_path = "./drat-trim"
 
+solver_clauses = []
 
 def is_sat(cnfs):
     solver = Cadical(bootstrap_with=cnfs)
@@ -30,6 +31,9 @@ def is_rat(cnfs, assumption):
 SATProver = None
 
 
+def get_current_clauses():
+    return solver_clauses
+
 def get_prover():
     global SATProver
     if not SATProver:
@@ -40,13 +44,15 @@ def get_prover():
 def init_prover():
     global SATProver
     SATProver = None
+    solver_clauses = []
 
 
 def add_clause_to_prover(clauses):
     satProver = get_prover()
     satProver.append_formula(clauses)
-
-
+    solver_clauses.extend(clauses)
+#
+#
 # def get_blocked_proof(cnfs, block_assumptions, optimize=False, useProver=False):
 #     additional_clause = []
 #     lock_cache()
@@ -97,8 +103,8 @@ def get_blocked_proof(block_assumptions, optimize=False, useProver=False):
     else:
         print("finish solving")
         proofs = solver.get_proof()
-        # if optimize:
-        #     proofs = optimize_proof(final_collection, proofs)
+        if optimize:
+            proofs = optimize_proof(get_current_clauses()+[[-top_level_assumption]], proofs)
 
         return additional_clause + _proof_block_cleanup(proofs, top_level_assumption, block_assumptions)
 
